@@ -1,0 +1,491 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Plus, Trash2, Upload, Eye, ShieldCheck, FilePenLine, LogOut } from "lucide-react";
+import MathRenderer from "@/components/MathRenderer";
+import { getAllExams, getQuestionsForExam } from "@/lib/mockData";
+import { cn } from "@/lib/utils";
+
+const emptyQuestion = () => ({
+  id: crypto.randomUUID(),
+  text: "",
+  options: ["", "", "", ""],
+  correctIndex: 0,
+  explanation: "",
+});
+
+export default function AdminDashboardPage() {
+  const router = useRouter();
+  const existingExams = getAllExams();
+  const [editingExamId, setEditingExamId] = useState("");
+  const [examTitle, setExamTitle] = useState("");
+  const [unit, setUnit] = useState("A");
+  const [examType, setExamType] = useState("practice"); // "practice" | "live"
+  const [scope, setScope] = useState("chapter");
+  const [durationMinutes, setDurationMinutes] = useState(30);
+  const [startAt, setStartAt] = useState("");
+  const [endAt, setEndAt] = useState("");
+  const [isPublic, setIsPublic] = useState(false);
+  const [questions, setQuestions] = useState([emptyQuestion()]);
+  const [csvText, setCsvText] = useState("");
+  const [csvPreview, setCsvPreview] = useState([]);
+  const [uploadResults, setUploadResults] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+  const [resetIds, setResetIds] = useState(false);
+
+  // Exams are editable anytime — loading one pulls its current questions
+  // into the same editor used to create new ones. Phase 2: this writes
+  // straight to the live `exams/{id}` doc, so edits to an exam that's
+  // currently live should go through an extra confirmation (changing a
+  // question mid-exam affects everyone taking it right now).
+  function loadExamForEditing(examId) {
+    setEditingExamId(examId);
+    if (!examId) {
+      setExamTitle("");
+      setUnit("A");
+      setExamType("practice");
+      setScope("chapter");
+      setDurationMinutes(30);
+      setStartAt("");
+      setEndAt("");
+      setIsPublic(false);
+      setQuestions([emptyQuestion()]);
+      return;
+    }
+    const exam = existingExams.find((e) => e.id === examId);
+    const qs = getQuestionsForExam(examId);
+    setExamTitle(exam?.title || "");
+    setUnit(exam?.unit || "A");
+    setExamType(exam?.type || "practice");
+    setScope(exam?.scope || "chapter");
+    setDurationMinutes(exam?.durationMinutes || 30);
+    setStartAt(exam?.startAt ? exam.startAt.slice(0, 16) : "");
+    setEndAt(exam?.endAt ? exam.endAt.slice(0, 16) : "");
+    setIsPublic(exam?.isPublic || false);
+    setQuestions(
+      qs.length
+        ? qs.map((q) => ({
+            id: q.id,
+            text: q.text,
+            options: q.options,
+            correctIndex: q.correctIndex,
+            explanation: q.explanation,
+          }))
+        : [emptyQuestion()]
+    );
+  }
+
+  function updateQuestion(id, patch) {
+    setQuestions((qs) => qs.map((q) => (q.id === id ? { ...q, ...patch } : q)));
+  }
+
+  function updateOption(qId, index, value) {
+    setQuestions((qs) =>
+      qs.map((q) =>
+        q.id === qId
+          ? { ...q, options: q.options.map((o, i) => (i === index ? value : o)) }
+          : q
+      )
+    );
+  }
+
+  function logout() {
+    fetch("/api/admin/session", { method: "DELETE" }).finally(() => router.push("/admin/login"));
+  }
+
+  const [publishing, setPublishing] = useState(false);
+  const [publishError, setPublishError] = useState("");
+  const [publishedId, setPublishedId] = useState("");
+
+  function publishExam() {
+    setPublishing(true);
+    setPublishError("");
+    fetch("/api/admin/exams", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        examId: editingExamId || undefined,
+        title: examTitle,
+        unit,
+        type: examType,
+        scope,
+        durationMinutes: Number(durationMinutes),
+        startAt: examType === "live" && startAt ? new Date(startAt).toISOString() : null,
+        endAt: examType === "live" && endAt ? new Date(endAt).toISOString() : null,
+        isPublic,
+        questions,
+      }),
+    })
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Publish failed");
+        setPublishedId(data.examId);
+      })
+      .catch((err) => setPublishError(err.message))
+      .finally(() => setPublishing(false));
+  }
+
+  function uploadStudents() {
+    setUploading(true);
+    setUploadError("");
+    setUploadResults(null);
+    fetch("/api/admin/students/bulk", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ rows: csvPreview, resetIds }),
+    })
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Upload failed");
+        setUploadResults(data.results);
+      })
+      .catch((err) => setUploadError(err.message))
+      .finally(() => setUploading(false));
+  }
+
+  function parseCsv(text) {
+    // Expected header: phone,name,group
+    const lines = text.trim().split("\n").filter(Boolean);
+    const [header, ...rows] = lines;
+    if (!header) return [];
+    const cols = header.split(",").map((c) => c.trim());
+    return rows.map((row) => {
+      const values = row.split(",").map((v) => v.trim());
+      return Object.fromEntries(cols.map((c, i) => [c, values[i]]));
+    });
+  }
+
+  return (
+    <main className="min-h-screen bg-ink-50 dark:bg-ink-950 pb-16">
+      <header className="border-b border-ink-100 dark:border-ink-800 px-4 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <ShieldCheck size={18} className="text-marigold-600 dark:text-marigold-400" />
+            <h1 className="font-display text-base font-semibold text-ink-900 dark:text-white">
+              Admin — Exam Creator
+            </h1>
+          </div>
+          <button onClick={logout} className="flex items-center gap-1 text-xs font-medium text-ink-400">
+            <LogOut size={14} /> Logout
+          </button>
+        </div>
+        <p className="mt-1 text-xs text-ink-400">
+          Grading, answer keys, and question data are write-only from here in
+          Phase 2 — never exposed to students via client-readable Firestore.
+          Real access to this page is gated by <code className="font-mono">/admin/login</code> + an
+          admin custom claim, enforced server-side, not by this page itself.
+        </p>
+      </header>
+
+      <section className="space-y-4 px-4 py-5">
+        {/* Load an existing exam to edit — exams are editable anytime */}
+        <div className="rounded-xl2 border border-ink-100 dark:border-ink-800 bg-white dark:bg-ink-900 p-4 shadow-card">
+          <h2 className="mb-2 flex items-center gap-1.5 text-sm font-semibold">
+            <FilePenLine size={15} /> Create new, or edit an existing exam
+          </h2>
+          <select
+            value={editingExamId}
+            onChange={(e) => loadExamForEditing(e.target.value)}
+            className="w-full rounded-lg border border-ink-100 dark:border-ink-700 bg-ink-50 dark:bg-ink-950 px-3 py-2 text-sm outline-none"
+          >
+            <option value="">+ New exam</option>
+            {existingExams.map((e) => (
+              <option key={e.id} value={e.id}>{e.title} ({e.type})</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Exam meta */}
+        <div className="rounded-xl2 border border-ink-100 dark:border-ink-800 bg-white dark:bg-ink-900 p-4 shadow-card">
+          <h2 className="mb-3 text-sm font-semibold">Exam details</h2>
+          <input
+            value={examTitle}
+            onChange={(e) => setExamTitle(e.target.value)}
+            placeholder="Exam title, e.g. A-Unit Full Model Test - 05"
+            className="mb-2 w-full rounded-lg border border-ink-100 dark:border-ink-700 bg-ink-50 dark:bg-ink-950 px-3 py-2 text-sm outline-none"
+          />
+          <div className="flex gap-2">
+            {["A", "B"].map((u) => (
+              <button
+                key={u}
+                onClick={() => setUnit(u)}
+                className={cn(
+                  "flex-1 rounded-lg border py-2 text-sm font-semibold",
+                  unit === u
+                    ? "border-marigold-500 bg-ink-900 text-white dark:bg-marigold-500 dark:text-ink-950"
+                    : "border-ink-100 dark:border-ink-700"
+                )}
+              >
+                {u}-Unit
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-3 flex gap-2">
+            {[
+              { key: "practice", label: "Practice (unlimited)" },
+              { key: "live", label: "Live (scheduled, one-time)" },
+            ].map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => setExamType(key)}
+                className={cn(
+                  "flex-1 rounded-lg border py-2 text-xs font-semibold",
+                  examType === key
+                    ? "border-marigold-500 bg-ink-900 text-white dark:bg-marigold-500 dark:text-ink-950"
+                    : "border-ink-100 dark:border-ink-700"
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {examType === "live" && (
+            <div className="mt-3 space-y-2">
+              <label className="block">
+                <span className="mb-1 block text-xs font-medium text-ink-600 dark:text-ink-100">Starts</span>
+                <input
+                  type="datetime-local"
+                  value={startAt}
+                  onChange={(e) => setStartAt(e.target.value)}
+                  className="w-full rounded-lg border border-ink-100 dark:border-ink-700 bg-ink-50 dark:bg-ink-950 px-3 py-2 text-sm outline-none"
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs font-medium text-ink-600 dark:text-ink-100">Ends</span>
+                <input
+                  type="datetime-local"
+                  value={endAt}
+                  onChange={(e) => setEndAt(e.target.value)}
+                  className="w-full rounded-lg border border-ink-100 dark:border-ink-700 bg-ink-50 dark:bg-ink-950 px-3 py-2 text-sm outline-none"
+                />
+              </label>
+              <label className="flex items-center gap-2 text-xs font-medium text-ink-600 dark:text-ink-100">
+                <input type="checkbox" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} />
+                Open a public guest link for this exam
+              </label>
+            </div>
+          )}
+
+          <label className="mt-3 block">
+            <span className="mb-1 block text-xs font-medium text-ink-600 dark:text-ink-100">Duration (minutes)</span>
+            <input
+              type="number"
+              min={5}
+              value={durationMinutes}
+              onChange={(e) => setDurationMinutes(e.target.value)}
+              className="w-full rounded-lg border border-ink-100 dark:border-ink-700 bg-ink-50 dark:bg-ink-950 px-3 py-2 text-sm outline-none"
+            />
+          </label>
+        </div>
+
+        {/* Live LaTeX question editor */}
+        <div className="rounded-xl2 border border-ink-100 dark:border-ink-800 bg-white dark:bg-ink-900 p-4 shadow-card">
+          <h2 className="mb-3 text-sm font-semibold">Questions</h2>
+          <div className="space-y-5">
+            {questions.map((q, idx) => (
+              <div
+                key={q.id}
+                className="rounded-lg border border-ink-100 dark:border-ink-700 p-3"
+              >
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="text-xs font-semibold text-ink-400">
+                    প্রশ্ন {idx + 1}
+                  </span>
+                  <button
+                    onClick={() =>
+                      setQuestions((qs) => qs.filter((x) => x.id !== q.id))
+                    }
+                    className="text-danger"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+
+                <textarea
+                  value={q.text}
+                  onChange={(e) => updateQuestion(q.id, { text: e.target.value })}
+                  placeholder="Question text — wrap LaTeX in $...$ e.g. $a = v/t$"
+                  rows={2}
+                  className="w-full rounded-lg border border-ink-100 dark:border-ink-700 bg-ink-50 dark:bg-ink-950 px-3 py-2 text-sm outline-none"
+                />
+
+                {/* Live preview — renders exactly what students will see */}
+                {q.text && (
+                  <div className="mt-2 flex items-start gap-1.5 rounded-lg bg-ink-50 dark:bg-ink-950 p-2.5 text-xs">
+                    <Eye size={12} className="mt-0.5 shrink-0 text-ink-400" />
+                    <MathRenderer text={q.text} />
+                  </div>
+                )}
+
+                <div className="mt-2 space-y-1.5">
+                  {q.options.map((opt, oi) => (
+                    <div key={oi} className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name={`correct-${q.id}`}
+                        checked={q.correctIndex === oi}
+                        onChange={() => updateQuestion(q.id, { correctIndex: oi })}
+                      />
+                      <input
+                        value={opt}
+                        onChange={(e) => updateOption(q.id, oi, e.target.value)}
+                        placeholder={`Option ${String.fromCharCode(65 + oi)}`}
+                        className="flex-1 rounded-lg border border-ink-100 dark:border-ink-700 bg-ink-50 dark:bg-ink-950 px-3 py-1.5 text-sm outline-none"
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                <textarea
+                  value={q.explanation}
+                  onChange={(e) =>
+                    updateQuestion(q.id, { explanation: e.target.value })
+                  }
+                  placeholder="Explanation (shown after results unlock)"
+                  rows={2}
+                  className="mt-2 w-full rounded-lg border border-ink-100 dark:border-ink-700 bg-ink-50 dark:bg-ink-950 px-3 py-2 text-sm outline-none"
+                />
+              </div>
+            ))}
+          </div>
+
+          <button
+            onClick={() => setQuestions((qs) => [...qs, emptyQuestion()])}
+            className="mt-3 flex items-center gap-1.5 text-sm font-semibold text-marigold-600 dark:text-marigold-400"
+          >
+            <Plus size={16} /> প্রশ্ন যোগ করো
+          </button>
+        </div>
+
+        {/* Bulk student CSV uploader */}
+        <div className="rounded-xl2 border border-ink-100 dark:border-ink-800 bg-white dark:bg-ink-900 p-4 shadow-card">
+          <h2 className="mb-1 text-sm font-semibold">Bulk student upload</h2>
+          <p className="mb-3 text-[11px] text-ink-400">
+            CSV columns: <code className="font-mono">phone,name,group</code>
+          </p>
+          <textarea
+            value={csvText}
+            onChange={(e) => setCsvText(e.target.value)}
+            placeholder={"phone,name,group\n01812345678,Tahmid Rahman,A_ONLY"}
+            rows={4}
+            className="w-full rounded-lg border border-ink-100 dark:border-ink-700 bg-ink-50 dark:bg-ink-950 px-3 py-2 font-mono text-xs outline-none"
+          />
+          <button
+            onClick={() => setCsvPreview(parseCsv(csvText))}
+            className="mt-2 flex items-center gap-1.5 rounded-lg border border-ink-100 dark:border-ink-700 px-3 py-1.5 text-xs font-semibold"
+          >
+            <Upload size={14} /> Preview parsed rows
+          </button>
+
+          {csvPreview.length > 0 && (
+            <div className="mt-3 overflow-x-auto rounded-lg border border-ink-100 dark:border-ink-700">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-ink-50 dark:bg-ink-950">
+                  <tr>
+                    {Object.keys(csvPreview[0]).map((col) => (
+                      <th key={col} className="px-2 py-1.5 font-semibold">
+                        {col}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {csvPreview.map((row, i) => (
+                    <tr key={i} className="border-t border-ink-100 dark:border-ink-800">
+                      {Object.values(row).map((val, j) => (
+                        <td key={j} className="px-2 py-1.5">
+                          {val}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <p className="mt-2 text-[10px] text-ink-400">
+            Upload writes real Firestore records — each Student ID is
+            generated and hashed server-side; the plain ID is shown below
+            exactly once, for you to distribute. There's no "look it up
+            again" feature by design (see the code comment in{" "}
+            <code className="font-mono">bulk/route.js</code>) — a lost ID
+            means reissuing one with the checkbox below, not recovering
+            the old one.
+          </p>
+
+          <label className="mt-2 flex items-center gap-2 text-[11px] font-medium text-ink-600 dark:text-ink-100">
+            <input type="checkbox" checked={resetIds} onChange={(e) => setResetIds(e.target.checked)} />
+            Reset the Student ID for phone numbers already registered (use this to reissue a lost ID)
+          </label>
+
+          {csvPreview.length > 0 && (
+            <button
+              onClick={uploadStudents}
+              disabled={uploading}
+              className="mt-2 flex items-center gap-1.5 rounded-lg bg-ink-900 dark:bg-marigold-500 px-3 py-1.5 text-xs font-semibold text-white dark:text-ink-950 disabled:opacity-60"
+            >
+              {uploading ? "Uploading..." : "Upload to database"}
+            </button>
+          )}
+
+          {uploadError && (
+            <p className="mt-2 text-xs text-danger">{uploadError}</p>
+          )}
+
+          {uploadResults && (
+            <div className="mt-3 overflow-x-auto rounded-lg border border-marigold-500/30 bg-marigold-500/5">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr>
+                    <th className="px-2 py-1.5 font-semibold">Phone</th>
+                    <th className="px-2 py-1.5 font-semibold">Name</th>
+                    <th className="px-2 py-1.5 font-semibold">Status</th>
+                    <th className="px-2 py-1.5 font-semibold">Student ID</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {uploadResults.map((r, i) => (
+                    <tr key={i} className="border-t border-marigold-500/20">
+                      <td className="px-2 py-1.5">{r.phone}</td>
+                      <td className="px-2 py-1.5">{r.name}</td>
+                      <td className="px-2 py-1.5">
+                        {r.status === "exists" ? (
+                          <span className="text-ink-400">already registered</span>
+                        ) : r.status === "id-reset" ? (
+                          <span className="text-marigold-600 dark:text-marigold-400">ID reset</span>
+                        ) : r.status === "skipped" ? (
+                          <span className="text-danger">{r.reason}</span>
+                        ) : (
+                          <span className="text-success">created</span>
+                        )}
+                      </td>
+                      <td className="px-2 py-1.5 font-mono font-semibold">{r.generatedId || "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        <button
+          onClick={publishExam}
+          disabled={publishing || !examTitle || questions.length === 0}
+          className="w-full rounded-lg bg-ink-900 dark:bg-marigold-500 py-3 text-sm font-semibold text-white dark:text-ink-950 disabled:opacity-60"
+        >
+          {publishing ? "Publishing..." : editingExamId ? "Save changes" : "Publish exam"}
+        </button>
+        {publishError && <p className="text-center text-xs text-danger">{publishError}</p>}
+        {publishedId && (
+          <p className="text-center text-xs text-success">
+            Published — exam ID <code className="font-mono">{publishedId}</code>
+          </p>
+        )}
+      </section>
+    </main>
+  );
+}

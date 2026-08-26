@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import "katex/dist/katex.min.css";
+
+:root {
+  --bg: 255 255 255;
+  --fg: 10 14 36;
+}
+
+.dark {
+  --bg: 10 14 36;
+  --fg: 241 243 251;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: rgb(var(--bg));
+  color: rgb(var(--fg));
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Bengali text needs slightly taller line-height than Latin text to avoid
+   clipping matras/kars — apply automatically wherever Bengali script appears. */
+:lang(bn) {
+  line-height: 1.9;
+}
+
+/* Visible keyboard focus everywhere — required for the anti-cheat / exam flows
+   where keyboard-only navigation is common during timed exams. */
+:focus-visible {
+  outline: 2px solid theme("colors.marigold.500");
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

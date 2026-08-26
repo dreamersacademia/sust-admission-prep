@@ -1,0 +1,53 @@
+{
+  "live-001": [
+    {
+      "id": "q1",
+      "subject": "Physics",
+      "text": "একটি বস্তুর ত্বরণ $a = \\dfrac{dv}{dt}$ হলে, $v = 3t^2 + 2t$ থেকে $t=2$ সেকেন্ডে ত্বরণ কত?",
+      "options": ["10 m/s²", "14 m/s²", "16 m/s²", "20 m/s²"],
+      "correctIndex": 1,
+      "explanation": "$a = \\dfrac{dv}{dt} = 6t + 2$। $t=2$ বসালে $a = 6(2)+2 = 14\\ m/s^2$।",
+      "videoUrl": "https://www.youtube.com/embed/REPLACE_WITH_REAL_VIDEO_ID"
+    },
+    {
+      "id": "q2",
+      "subject": "Higher Mathematics",
+      "text": "যদি $A = \\begin{pmatrix} 1 & 2 \\\\ 3 & 4 \\end{pmatrix}$ হয়, তবে $\\det(A)$ এর মান কত?",
+      "options": ["-2", "2", "5", "10"],
+      "correctIndex": 0,
+      "explanation": "$\\det(A) = (1)(4) - (2)(3) = 4 - 6 = -2$।",
+      "videoUrl": null
+    },
+    {
+      "id": "q3",
+      "subject": "Chemistry",
+      "text": "নিচের কোনটি $CH_3COOH$ এর সঠিক নাম?",
+      "options": ["মিথানল", "ইথানয়িক এসিড", "ফরমিক এসিড", "ইথানল"],
+      "correctIndex": 1,
+      "explanation": "$CH_3COOH$ হলো অ্যাসিটিক এসিড, যার IUPAC নাম ইথানয়িক এসিড (Ethanoic acid)।",
+      "videoUrl": null
+    }
+  ],
+  "archive-001": [
+    {
+      "id": "a1",
+      "subject": "Physics",
+      "text": "কোনো বস্তুর ভরবেগ $p = mv$। $m = 2\\ kg$, $v = 5\\ m/s$ হলে ভরবেগ কত?",
+      "options": ["7 kg·m/s", "10 kg·m/s", "12 kg·m/s", "25 kg·m/s"],
+      "correctIndex": 1,
+      "explanation": "$p = mv = 2 \\times 5 = 10\\ kg\\cdot m/s$।",
+      "videoUrl": "https://www.youtube.com/embed/REPLACE_WITH_REAL_VIDEO_ID"
+    }
+  ],
+  "practice-001": [
+    {
+      "id": "p1",
+      "subject": "Higher Mathematics",
+      "text": "$\\begin{vmatrix} 2 & 0 \\\\ 0 & 3 \\end{vmatrix}$ এর মান কত?",
+      "options": ["5", "6", "0", "1"],
+      "correctIndex": 1,
+      "explanation": "কর্ণ ম্যাট্রিক্সের নির্ণায়ক কর্ণের উপাদানগুলোর গুণফলের সমান: $2 \\times 3 = 6$।",
+      "videoUrl": null
+    }
+  ]
+}

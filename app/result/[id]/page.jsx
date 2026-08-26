@@ -1,0 +1,167 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams, useSearchParams, useRouter } from "next/navigation";
+import { PlayCircle, X, CheckCircle2, XCircle, Trophy, GraduationCap } from "lucide-react";
+import MathRenderer from "@/components/MathRenderer";
+import Mascot from "@/components/Mascot";
+import { fetchExamById, fetchExamResult, getCurrentStudent } from "@/lib/dataLayer";
+import { cn } from "@/lib/utils";
+
+export default function ResultPage() {
+  const { id } = useParams();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const justSubmitted = searchParams.get("justSubmitted") === "1";
+  const isPracticeMode = searchParams.get("mode") === "practice";
+  const student = getCurrentStudent();
+
+  const [exam, setExam] = useState(null);
+  const [result, setResult] = useState(null); // null = loading, undefined = no attempt found
+  const [loadError, setLoadError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([fetchExamById(id), fetchExamResult(id, { isPractice: isPracticeMode })])
+      .then(([examData, resultData]) => {
+        if (cancelled) return;
+        setExam(examData);
+        setResult(resultData === null ? undefined : resultData);
+      })
+      .catch((err) => !cancelled && setLoadError(err.message));
+    return () => { cancelled = true; };
+  }, [id, isPracticeMode]);
+
+  const [activeVideo, setActiveVideo] = useState(null);
+  const [revealed, setRevealed] = useState(!justSubmitted);
+
+  if (loadError) return <p className="p-6 text-center text-sm text-danger">{loadError}</p>;
+  if (!exam || result === null) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-ink-50 dark:bg-ink-950">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-ink-200 dark:border-ink-700 border-t-marigold-500" />
+      </div>
+    );
+  }
+
+  if (!result) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center gap-3 bg-ink-50 dark:bg-ink-950 px-6 text-center">
+        <Mascot mood="idle" message="এখনো এই পরীক্ষাটি দাওনি।" ctaLabel="ড্যাশবোর্ডে যাও" onCta={() => router.push("/dashboard")} />
+      </main>
+    );
+  }
+
+  const { correctCount, total, answers = {}, questions = [], merit = [], detailsLocked } = result;
+  const scorePct = total ? Math.round((correctCount / total) * 100) : 0;
+  const mood = scorePct >= 70 ? "celebrate" : "encourage";
+
+  return (
+    <main className="min-h-screen bg-ink-50 dark:bg-ink-950 pb-16">
+      <header className="border-b border-ink-100 dark:border-ink-800 px-4 py-4 text-center">
+        <h1 className="font-display text-sm font-semibold text-ink-900 dark:text-white">{exam.title}</h1>
+        {isPracticeMode && (
+          <p className="mt-0.5 text-[11px] font-semibold text-marigold-600 dark:text-marigold-400">প্র্যাকটিস রেজাল্ট — মেরিটে যুক্ত হয়নি</p>
+        )}
+      </header>
+
+      {!revealed ? (
+        <div className="flex flex-col items-center gap-4 px-6 py-16 text-center">
+          <Mascot mood="suspense" size="lg" ctaLabel="রেজাল্ট দেখো" onCta={() => setRevealed(true)} />
+        </div>
+      ) : (
+        <>
+          <section className="px-4 py-6 text-center">
+            <Mascot mood={mood} size="lg" ctaLabel="ড্যাশবোর্ডে যাও" onCta={() => router.push("/dashboard")} />
+            <p className="mt-4 font-display text-3xl font-bold text-ink-900 dark:text-white">
+              {correctCount}<span className="text-lg text-ink-400">/{total}</span>
+            </p>
+            <p className="text-xs text-ink-400">তোমার স্কোর — {scorePct}%</p>
+          </section>
+
+          {detailsLocked ? (
+            <section className="px-6 py-10 text-center">
+              <p className="text-xs text-ink-400" lang="bn">
+                বিস্তারিত সমাধান, ভিডিও ব্যাখ্যা ও মেরিট লিস্ট — লাইভ পরীক্ষার সময় শেষ হওয়ার পর, সবার জন্য একসাথে আনলক হবে।
+              </p>
+            </section>
+          ) : (
+            <>
+              {merit.length > 0 && (
+                <section className="mx-4 mb-4 rounded-xl2 border border-ink-100 dark:border-ink-800 bg-white dark:bg-ink-900 p-4 shadow-card">
+                  <h2 className="mb-2 flex items-center gap-1.5 text-sm font-semibold">
+                    <Trophy size={15} className="text-marigold-500" /> মেরিট লিস্ট
+                  </h2>
+                  <p className="mb-3 text-[10px] text-ink-400" lang="bn">
+                    রেজিস্টার্ড শিক্ষার্থী ও পাবলিক লিংক থেকে অংশগ্রহণকারী — সবাই একসাথে র‍্যাংক করা হয়েছে।
+                  </p>
+                  <div className="space-y-1.5">
+                    {merit.map((row) => {
+                      const isMe = !row.isGuest && row.name === student.name;
+                      return (
+                        <div key={row.rank} className={cn("flex items-center justify-between rounded-lg px-2.5 py-1.5 text-xs", isMe ? "bg-marigold-500/10 font-semibold" : "bg-ink-50 dark:bg-ink-950")}>
+                          <span className="flex items-center gap-2">
+                            <span className="w-6 shrink-0 text-ink-400">#{row.rank}</span>
+                            <span>{row.name}</span>
+                            {row.isGuest && (
+                              <span className="flex items-center gap-1 text-[10px] text-ink-400">
+                                <GraduationCap size={11} /> {row.college}
+                              </span>
+                            )}
+                          </span>
+                          <span className="font-semibold">{row.score}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+              )}
+
+              <section className="space-y-3 px-4">
+                {questions.map((q, idx) => {
+                  const yourAnswer = answers[q.id];
+                  const isCorrect = yourAnswer === q.correctIndex;
+                  return (
+                    <div key={q.id} className="rounded-xl2 border border-ink-100 dark:border-ink-800 bg-white dark:bg-ink-900 p-4 shadow-card">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-marigold-600 dark:text-marigold-400">প্রশ্ন {idx + 1} · {q.subject}</p>
+                        {isCorrect ? <CheckCircle2 size={16} className="shrink-0 text-success" /> : <XCircle size={16} className="shrink-0 text-danger" />}
+                      </div>
+                      <MathRenderer text={q.text} className="mt-1 text-sm" />
+                      <div className="mt-2 space-y-1.5">
+                        {q.options.map((opt, oi) => (
+                          <div key={oi} className={cn("rounded-lg border px-2.5 py-1.5 text-xs", oi === q.correctIndex && "border-success bg-success/10 font-semibold", oi === yourAnswer && oi !== q.correctIndex && "border-danger bg-danger/10")}>
+                            <MathRenderer text={opt} />
+                          </div>
+                        ))}
+                      </div>
+                      <div className="mt-2 rounded-lg bg-ink-50 dark:bg-ink-950 p-2.5 text-xs text-ink-600 dark:text-ink-100">
+                        <MathRenderer text={q.explanation} />
+                      </div>
+                      {q.videoUrl && (
+                        <button onClick={() => setActiveVideo(q.videoUrl)} className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-marigold-600 dark:text-marigold-400">
+                          <PlayCircle size={14} /> ভিডিও সমাধান দেখো
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </section>
+            </>
+          )}
+        </>
+      )}
+
+      {activeVideo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onClick={() => setActiveVideo(null)}>
+          <div className="relative w-full max-w-md rounded-xl2 overflow-hidden bg-black" onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => setActiveVideo(null)} className="absolute -top-9 right-0 text-white"><X size={20} /></button>
+            <div className="aspect-video">
+              <iframe src={activeVideo} title="Video explanation" className="h-full w-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+            </div>
+          </div>
+        </div>
+      )}
+    </main>
+  );
+}

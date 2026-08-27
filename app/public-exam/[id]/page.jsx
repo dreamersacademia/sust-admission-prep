@@ -6,7 +6,7 @@ import { Lock, Trophy, LockKeyhole } from "lucide-react";
 import MathRenderer from "@/components/MathRenderer";
 import Mascot from "@/components/Mascot";
 import { fetchExamById, fetchQuestionsForExam, submitGuestExam } from "@/lib/dataLayer";
-import { formatCountdown, cn } from "@/lib/utils";
+import { formatCountdown, cn, moodForScore } from "@/lib/utils";
 import { examStatus } from "@/lib/timeWindow";
 
 const ANSWER_LOCK_DELAY_MS = 1500;
@@ -101,7 +101,7 @@ export default function PublicExamPage() {
     const scorePct = scoreResult.total ? Math.round((scoreResult.correctCount / scoreResult.total) * 100) : 0;
     return (
       <main className="flex min-h-screen flex-col items-center justify-center gap-3 bg-ink-50 dark:bg-ink-950 px-6 text-center">
-        <Mascot mood={scorePct >= 70 ? "celebrate" : "encourage"} size="lg" />
+        <Mascot mood={moodForScore(scorePct)} size="lg" />
         <h1 className="font-display text-base font-semibold" lang="bn">জমা হয়েছে, ধন্যবাদ {guestName}!</h1>
         <p className="font-display text-3xl font-bold text-ink-900 dark:text-white">
           {scoreResult.correctCount}<span className="text-lg text-ink-400">/{scoreResult.total}</span>

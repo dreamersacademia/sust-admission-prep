@@ -9,7 +9,7 @@ import { AnimatePresence, motion } from "framer-motion";
  * gradient, not an emoji. Wings flap, eyes blink on a random timer, body
  * bobs — reads as "alive" at rest, not just during a specific animation.
  *
- * mood: "idle" | "submitting" | "blocking" | "suspense" | "celebrate" | "encourage" | "locked"
+ * mood: "idle" | "submitting" | "blocking" | "suspense" | "celebrate-high" | "celebrate" | "encourage" | "struggling" | "locked"
  * ctaLabel/onCta: optional — always give the mascot a way forward when
  * it's the main content of a screen (e.g. a result reveal), so the user
  * never gets stuck looking at it with nowhere to go.
@@ -19,8 +19,10 @@ const MOOD_COPY = {
   submitting: "আরেহ! সব আনসার করা শেষ?? 😳",
   blocking: "কোথায় পালাচ্ছ 🧐! এক্সাম শেষ করো।",
   suspense: "রেডি তো? দেখি কত পেলে! 👀",
+  "celebrate-high": "অবিশ্বাস্য!! তুমি তো একদম টপার! 🏆✨",
   celebrate: "অসাধারণ! এভাবেই এগিয়ে যাও 🎉",
-  encourage: "এবার একটু কম হলো, পরেরটায় ঘুরে দাঁড়াও! 💪",
+  encourage: "মোটামুটি হয়েছে — একটু বেশি প্র্যাকটিস করলেই দারুণ হবে! 💪",
+  struggling: "মন খারাপ করো না — সবার শুরুটা এমনই হয়। আবার চেষ্টা করো! 🌱",
   locked: "উত্তর লক হয়ে গেছে — এখন আর বদলানো যাবে না।",
 };
 
@@ -30,8 +32,10 @@ const MOOD_GRADIENT = {
   submitting: ["#8891c9", "#2f3878"],
   blocking: ["#f08a83", "#c23930"],
   suspense: ["#5b67a8", "#1a2050"],
+  "celebrate-high": ["#ffd76a", "#c9820a"],
   celebrate: ["#6fd6a3", "#1f8a56"],
   encourage: ["#f6b93b", "#c9820a"],
+  struggling: ["#8891c9", "#4a5590"],
   locked: ["#8891c9", "#2f3878"],
 };
 
@@ -53,22 +57,24 @@ export default function Mascot({ mood = "idle", message, size = "md", ctaLabel, 
   }, []);
 
   const isBlocking = mood === "blocking";
-  const isCelebrate = mood === "celebrate";
+  const isCelebrate = mood === "celebrate" || mood === "celebrate-high";
+  const isTopper = mood === "celebrate-high";
+  const isStruggling = mood === "struggling";
 
   return (
     <div className="flex flex-col items-center gap-3">
       <div className="flex items-end gap-3">
         <motion.div
           animate={{
-            y: isBlocking ? [0, -3, 0] : [0, -7, 0],
-            rotate: isBlocking ? [0, -4, 4, 0] : [-2, 2, -2],
+            y: isBlocking ? [0, -3, 0] : isStruggling ? [0, -3, 0] : isTopper ? [0, -14, 0] : [0, -7, 0],
+            rotate: isBlocking ? [0, -4, 4, 0] : isStruggling ? [-1, 1, -1] : [-2, 2, -2],
           }}
-          transition={{ duration: isBlocking ? 0.45 : 2.8, repeat: Infinity, ease: "easeInOut" }}
-          style={{ width: px, height: px }}
+          transition={{ duration: isBlocking ? 0.45 : isTopper ? 0.9 : 2.8, repeat: Infinity, ease: "easeInOut" }}
+          style={{ width: px, height: px, opacity: isStruggling ? 0.92 : 1 }}
           className="relative shrink-0 drop-shadow-xl"
         >
-          {isCelebrate && <Sparkles />}
-          <svg viewBox="0 0 120 130" width={px} height={px}>
+          {isCelebrate && <Sparkles big={isTopper} />}
+          <svg viewBox="0 0 120 130" width={px} height={px} style={{ transform: isStruggling ? "rotate(-2deg)" : undefined }}>
             <defs>
               <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor={c1} />
@@ -76,19 +82,19 @@ export default function Mascot({ mood = "idle", message, size = "md", ctaLabel, 
               </linearGradient>
             </defs>
 
-            {/* back wings — flap */}
+            {/* back wings — flap (droop instead, for a low-score comfort pose) */}
             <motion.ellipse
               cx="22" cy="80" rx="14" ry="22"
               fill={c2}
-              animate={{ rotate: isCelebrate ? [0, -30, 0] : [-8, 4, -8] }}
-              transition={{ duration: isCelebrate ? 0.5 : 2.8, repeat: Infinity, ease: "easeInOut" }}
+              animate={{ rotate: isTopper ? [0, -45, 0] : isCelebrate ? [0, -30, 0] : isStruggling ? [-14, -10, -14] : [-8, 4, -8] }}
+              transition={{ duration: isTopper ? 0.35 : isCelebrate ? 0.5 : 2.8, repeat: Infinity, ease: "easeInOut" }}
               style={{ transformOrigin: "30px 68px" }}
             />
             <motion.ellipse
               cx="98" cy="80" rx="14" ry="22"
               fill={c2}
-              animate={{ rotate: isCelebrate ? [0, 30, 0] : [8, -4, 8] }}
-              transition={{ duration: isCelebrate ? 0.5 : 2.8, repeat: Infinity, ease: "easeInOut" }}
+              animate={{ rotate: isTopper ? [0, 45, 0] : isCelebrate ? [0, 30, 0] : isStruggling ? [14, 10, 14] : [8, -4, 8] }}
+              transition={{ duration: isTopper ? 0.35 : isCelebrate ? 0.5 : 2.8, repeat: Infinity, ease: "easeInOut" }}
               style={{ transformOrigin: "90px 68px" }}
             />
 
@@ -108,28 +114,52 @@ export default function Mascot({ mood = "idle", message, size = "md", ctaLabel, 
             {/* face disc */}
             <ellipse cx="60" cy="66" rx="30" ry="26" fill="#fff9f0" opacity="0.95" />
 
-            {/* eyes */}
-            {blink ? (
+            {/* eyes — star-shaped sparkle for the topper mood, droopy half-lidded for struggling */}
+            {blink && !isTopper ? (
               <>
                 <path d="M 38 64 Q 47 68 56 64" stroke="#101636" strokeWidth="3.5" strokeLinecap="round" fill="none" />
                 <path d="M 64 64 Q 73 68 82 64" stroke="#101636" strokeWidth="3.5" strokeLinecap="round" fill="none" />
               </>
+            ) : isTopper ? (
+              <>
+                <StarEye cx={47} cy={64} />
+                <StarEye cx={73} cy={64} />
+              </>
             ) : (
               <>
-                <circle cx="47" cy="64" r="10" fill="#fff" stroke="#101636" strokeWidth="2" />
-                <circle cx="73" cy="64" r="10" fill="#fff" stroke="#101636" strokeWidth="2" />
-                <circle cx={isBlocking ? 44 : 49} cy="64" r="5" fill="#101636" />
-                <circle cx={isBlocking ? 70 : 75} cy="64" r="5" fill="#101636" />
-                <circle cx="51" cy="61" r="1.6" fill="#fff" />
-                <circle cx="77" cy="61" r="1.6" fill="#fff" />
+                <circle cx="47" cy={isStruggling ? 66 : 64} r="10" fill="#fff" stroke="#101636" strokeWidth="2" />
+                <circle cx="73" cy={isStruggling ? 66 : 64} r="10" fill="#fff" stroke="#101636" strokeWidth="2" />
+                {isStruggling && (
+                  <>
+                    {/* half-closed eyelid for a gentle, comforting look rather than sad/mocking */}
+                    <path d="M 37 63 Q 47 58 57 63 L 57 66 Q 47 62 37 66 Z" fill="#fff9f0" />
+                    <path d="M 63 63 Q 73 58 83 63 L 83 66 Q 73 62 63 66 Z" fill="#fff9f0" />
+                  </>
+                )}
+                <circle cx={isBlocking ? 44 : 49} cy={isStruggling ? 67 : 64} r="5" fill="#101636" />
+                <circle cx={isBlocking ? 70 : 75} cy={isStruggling ? 67 : 64} r="5" fill="#101636" />
+                <circle cx="51" cy={isStruggling ? 64 : 61} r="1.6" fill="#fff" />
+                <circle cx="77" cy={isStruggling ? 64 : 61} r="1.6" fill="#fff" />
               </>
             )}
 
-            {/* eyebrows — only visible when blocking, for a stern look */}
+            {/* eyebrows — stern when blocking, gently raised/concerned when struggling */}
             {isBlocking && (
               <>
                 <line x1="38" y1="50" x2="52" y2="54" stroke="#101636" strokeWidth="3" strokeLinecap="round" />
                 <line x1="82" y1="50" x2="68" y2="54" stroke="#101636" strokeWidth="3" strokeLinecap="round" />
+              </>
+            )}
+            {isStruggling && (
+              <>
+                <line x1="39" y1="52" x2="53" y2="49" stroke="#101636" strokeWidth="2.5" strokeLinecap="round" />
+                <line x1="81" y1="52" x2="67" y2="49" stroke="#101636" strokeWidth="2.5" strokeLinecap="round" />
+              </>
+            )}
+            {isTopper && (
+              <>
+                <circle cx="31" cy="74" r="5" fill="#ff8a80" opacity="0.4" />
+                <circle cx="89" cy="74" r="5" fill="#ff8a80" opacity="0.4" />
               </>
             )}
 
@@ -172,18 +202,26 @@ export default function Mascot({ mood = "idle", message, size = "md", ctaLabel, 
 
 // Tiny particle burst behind the mascot on a celebration — no external
 // confetti library needed (network's off for npm installs anyway).
-function Sparkles() {
-  const particles = Array.from({ length: 10 });
+// `big` (the celebrate-high/topper mood) gets more particles, wider
+// spread, and a second color pass so it reads as a genuinely bigger deal.
+function Sparkles({ big = false }) {
+  const count = big ? 16 : 10;
+  const particles = Array.from({ length: count });
   return (
     <div className="pointer-events-none absolute inset-0">
       {particles.map((_, i) => {
         const angle = (i / particles.length) * Math.PI * 2;
-        const dist = 46;
+        const dist = big ? 62 : 46;
+        const colors = big ? ["#ffd76a", "#f6b93b", "#2fae6f"] : ["#f6b93b", "#2fae6f"];
         return (
           <motion.span
             key={i}
-            className="absolute left-1/2 top-1/2 h-1.5 w-1.5 rounded-full"
-            style={{ backgroundColor: i % 2 ? "#f6b93b" : "#2fae6f" }}
+            className="absolute left-1/2 top-1/2 rounded-full"
+            style={{
+              width: big ? 7 : 6,
+              height: big ? 7 : 6,
+              backgroundColor: colors[i % colors.length],
+            }}
             initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
             animate={{
               x: Math.cos(angle) * dist,
@@ -197,4 +235,18 @@ function Sparkles() {
       })}
     </div>
   );
+}
+
+// Star-shaped "sparkle eyes" for the top-score mood — a simple 5-point
+// star scaled small, rendered in place of the normal circular pupil.
+function StarEye({ cx, cy }) {
+  const points = [];
+  const outerR = 7;
+  const innerR = 3;
+  for (let i = 0; i < 10; i++) {
+    const r = i % 2 === 0 ? outerR : innerR;
+    const angle = (Math.PI / 5) * i - Math.PI / 2;
+    points.push(`${cx + r * Math.cos(angle)},${cy + r * Math.sin(angle)}`);
+  }
+  return <polygon points={points.join(" ")} fill="#eda315" stroke="#101636" strokeWidth="1" />;
 }

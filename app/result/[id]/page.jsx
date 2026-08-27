@@ -5,8 +5,8 @@ import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { PlayCircle, X, CheckCircle2, XCircle, Trophy, GraduationCap } from "lucide-react";
 import MathRenderer from "@/components/MathRenderer";
 import Mascot from "@/components/Mascot";
-import { fetchExamById, fetchExamResult, getCurrentStudent } from "@/lib/dataLayer";
-import { cn } from "@/lib/utils";
+import { fetchExamById, fetchExamResult, fetchCurrentStudent } from "@/lib/dataLayer";
+import { cn, moodForScore } from "@/lib/utils";
 
 export default function ResultPage() {
   const { id } = useParams();
@@ -14,7 +14,7 @@ export default function ResultPage() {
   const searchParams = useSearchParams();
   const justSubmitted = searchParams.get("justSubmitted") === "1";
   const isPracticeMode = searchParams.get("mode") === "practice";
-  const student = getCurrentStudent();
+  const [student, setStudent] = useState(null);
 
   const [exam, setExam] = useState(null);
   const [result, setResult] = useState(null); // null = loading, undefined = no attempt found
@@ -22,11 +22,12 @@ export default function ResultPage() {
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([fetchExamById(id), fetchExamResult(id, { isPractice: isPracticeMode })])
-      .then(([examData, resultData]) => {
+    Promise.all([fetchExamById(id), fetchExamResult(id, { isPractice: isPracticeMode }), fetchCurrentStudent()])
+      .then(([examData, resultData, studentData]) => {
         if (cancelled) return;
         setExam(examData);
         setResult(resultData === null ? undefined : resultData);
+        setStudent(studentData);
       })
       .catch((err) => !cancelled && setLoadError(err.message));
     return () => { cancelled = true; };
@@ -36,7 +37,7 @@ export default function ResultPage() {
   const [revealed, setRevealed] = useState(!justSubmitted);
 
   if (loadError) return <p className="p-6 text-center text-sm text-danger">{loadError}</p>;
-  if (!exam || result === null) {
+  if (!exam || result === null || !student) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-ink-50 dark:bg-ink-950">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-ink-200 dark:border-ink-700 border-t-marigold-500" />
@@ -52,9 +53,9 @@ export default function ResultPage() {
     );
   }
 
-  const { correctCount, total, answers = {}, questions = [], merit = [], detailsLocked } = result;
+  const { correctCount, total, answers = {}, questions = [], merit = [], stats = {}, detailsLocked } = result;
   const scorePct = total ? Math.round((correctCount / total) * 100) : 0;
-  const mood = scorePct >= 70 ? "celebrate" : "encourage";
+  const mood = moodForScore(scorePct);
 
   return (
     <main className="min-h-screen bg-ink-50 dark:bg-ink-950 pb-16">
@@ -121,6 +122,7 @@ export default function ResultPage() {
                 {questions.map((q, idx) => {
                   const yourAnswer = answers[q.id];
                   const isCorrect = yourAnswer === q.correctIndex;
+                  const qStats = stats[q.id];
                   return (
                     <div key={q.id} className="rounded-xl2 border border-ink-100 dark:border-ink-800 bg-white dark:bg-ink-900 p-4 shadow-card">
                       <div className="flex items-start justify-between gap-2">
@@ -129,12 +131,26 @@ export default function ResultPage() {
                       </div>
                       <MathRenderer text={q.text} className="mt-1 text-sm" />
                       <div className="mt-2 space-y-1.5">
-                        {q.options.map((opt, oi) => (
-                          <div key={oi} className={cn("rounded-lg border px-2.5 py-1.5 text-xs", oi === q.correctIndex && "border-success bg-success/10 font-semibold", oi === yourAnswer && oi !== q.correctIndex && "border-danger bg-danger/10")}>
-                            <MathRenderer text={opt} />
-                          </div>
-                        ))}
+                        {q.options.map((opt, oi) => {
+                          const pct = qStats?.optionPercentages?.[oi];
+                          return (
+                            <div key={oi} className={cn("relative overflow-hidden rounded-lg border px-2.5 py-1.5 text-xs", oi === q.correctIndex && "border-success bg-success/10 font-semibold", oi === yourAnswer && oi !== q.correctIndex && "border-danger bg-danger/10")}>
+                              {qStats && (
+                                <div className="absolute inset-y-0 left-0 bg-ink-900/5 dark:bg-white/5" style={{ width: `${pct || 0}%` }} />
+                              )}
+                              <div className="relative flex items-center justify-between gap-2">
+                                <MathRenderer text={opt} />
+                                {qStats && <span className="shrink-0 text-[10px] text-ink-400">{pct}%</span>}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
+                      {qStats && (
+                        <p className="mt-2 text-[10px] text-ink-400" lang="bn">
+                          মোট {qStats.totalAttempts} জনের মধ্যে — সঠিক {qStats.correctCount}, ভুল {qStats.wrongCount}, স্কিপ {qStats.skippedCount}
+                        </p>
+                      )}
                       <div className="mt-2 rounded-lg bg-ink-50 dark:bg-ink-950 p-2.5 text-xs text-ink-600 dark:text-ink-100">
                         <MathRenderer text={q.explanation} />
                       </div>

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { adminDb, verifyRequest } from "@/lib/server/firebaseAdmin";
+import { finalizeIfOverdue } from "@/lib/server/examFinalize";
 
 export async function GET(request, { params }) {
   const decoded = await verifyRequest(request);
@@ -14,6 +15,7 @@ export async function GET(request, { params }) {
 
   let attempted = false;
   if (decoded) {
+    await finalizeIfOverdue(params.id, decoded.uid);
     const attemptSnap = await adminDb.collection("attempts").doc(`${decoded.uid}_${params.id}`).get();
     attempted = attemptSnap.exists && attemptSnap.data().status === "submitted";
   }

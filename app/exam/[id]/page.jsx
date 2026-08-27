@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { WifiOff, AlertTriangle, X, Lock, Hourglass } from "lucide-react";
 import MathRenderer from "@/components/MathRenderer";
 import Mascot from "@/components/Mascot";
-import { fetchExamById, fetchQuestionsForExam, submitExam as submitExamRequest, startExamAttempt, checkAttempted } from "@/lib/dataLayer";
+import { fetchExamById, fetchQuestionsForExam, submitExam as submitExamRequest, startExamAttempt, checkAttempted, syncAnswersToServer } from "@/lib/dataLayer";
 import { formatCountdown, cn, haptic } from "@/lib/utils";
 import { examStatus, msUntil, formatDuration } from "@/lib/timeWindow";
 
@@ -123,7 +123,14 @@ export default function ExamEnginePage() {
     const draft = JSON.parse(localStorage.getItem(key) || "{}");
     draft[questionId] = optionIndex;
     localStorage.setItem(key, JSON.stringify(draft));
-  }, [id]);
+    // Best-effort server backup — see syncAnswersToServer's comment for
+    // why this matters even though localStorage already has it: a dead
+    // connection at the deadline means localStorage is USELESS for
+    // grading (the server can't read the student's disk), so this is
+    // what actually protects a student who loses connectivity right at
+    // the end from losing credit for everything they'd already locked in.
+    if (isLiveType) syncAnswersToServer(id, draft);
+  }, [id, isLiveType]);
 
   const chooseOption = useCallback(
     (questionId, optionIndex) => {

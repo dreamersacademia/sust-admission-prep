@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { adminDb, verifyRequest } from "@/lib/server/firebaseAdmin";
+import { finalizeIfOverdue } from "@/lib/server/examFinalize";
 
 /**
  * GET /api/exams
@@ -20,6 +21,19 @@ export async function GET(request) {
 
   let attemptedIds = new Set();
   if (decoded) {
+    // Finalize any attempt whose deadline has quietly passed (dead
+    // connection, closed tab) BEFORE computing what's still open — this
+    // is why a submitted/overdue live exam can no longer reappear after
+    // a refresh: it's locked here, not just hidden by client state.
+    const inProgressSnap = await adminDb
+      .collection("attempts")
+      .where("studentAuthUid", "==", decoded.uid)
+      .where("status", "==", "in_progress")
+      .get();
+    await Promise.all(
+      inProgressSnap.docs.map((d) => finalizeIfOverdue(d.data().examId, decoded.uid))
+    );
+
     const attemptsSnap = await adminDb
       .collection("attempts")
       .where("studentAuthUid", "==", decoded.uid)

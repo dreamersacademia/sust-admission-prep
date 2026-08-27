@@ -21,7 +21,7 @@ Create a new **empty** repository on https://github.com/new (don't
 initialize it with a README — you already have one), then:
 
 ```bash
-git remote add origin https://github.com/dreamersacademia/sust-admission-prep.git
+git remote add origin https://github.com/<your-username>/sust-admission-prep.git
 git branch -M main
 git push -u origin main
 ```

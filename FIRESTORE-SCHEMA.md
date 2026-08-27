@@ -115,37 +115,42 @@ Written once, by the API route, when the exam's window closes — combining
 `attempts` where `isPractice == false` for that `examId`, sorted by score.
 The parent `leaderboards/{examId}` doc has `published: boolean` — rules
 only allow public read once it's `true`, so nobody (guest or otherwise)
-can see partial rankings while the exam is still live.
+can see partial rankings while the exam is still live. The parent doc
+also carries a `stats` map (per-question correct/wrong/skipped counts and
+per-option answer percentages) computed from the same attempts query.
+
+**`leaderboards/{examId}/adminEntries/{rank}`** — same shape as `entries`
+plus `studentAuthUid`, admin-read-only (see `firestore.rules`). Exists
+so the admin PDF export (`GET /api/admin/exams/[id]/analytics`) can join
+in each registered student's phone number without ever adding that field
+to the public `entries` collection every student's own result page reads.
 
 ---
 
 ## API routes (Next.js, Admin SDK) — replace `lib/mockData.js` internals
 
-| Route | Replaces |
+| Route | Status |
 |---|---|
-| `POST /api/auth/login` | Phase 1's no-op login |
+| `GET /api/me` | ✅ Built — the authenticated student's own profile (fixed a real bug: the dashboard was showing the mock student's name regardless of who logged in) |
 | `POST /api/auth/login` | ✅ Built |
 | `POST /api/exam/[id]/start` | ✅ Built — opens/resumes the attempt with an immutable, transaction-safe deadline (closes the "reopen for a fresh timer" gap) |
-| `GET /api/exams` | ✅ Built — list, for the dashboard tabs |
+| `POST /api/exam/[id]/autosave` | ✅ Built — syncs answers to the server after every lock, so a dead connection right at the deadline still has real answers to grade |
+| `GET /api/exams` | ✅ Built — list, for the dashboard tabs; also finalizes any overdue in-progress attempt before computing what's still open |
 | `GET /api/exam/[id]` | ✅ Built — single exam metadata |
 | `GET /api/exam/[id]/questions` | ✅ Built |
-| `POST /api/exam/[id]/submit` | ✅ Built |
+| `POST /api/exam/[id]/submit` | ✅ Built — ignores a late client payload past the deadline, grading only from autosaved answers |
 | `POST /api/exam/[id]/guest-submit` | ✅ Built — public-link entry, no auth (see the open gap noted in its file re: one-attempt enforcement) |
-| `GET /api/exam/[id]/result` | ✅ Built — two-stage reveal + computes/caches the leaderboard on first read after window close |
+| `GET /api/exam/[id]/result` | ✅ Built — two-stage reveal, permanent once the window closes, plus per-question stats (correct/wrong/skipped, per-option %) |
 | `POST /api/admin/session` | ✅ Built — real Firebase ID token + admin-claim verification |
 | `POST /api/admin/exams` | ✅ Built — create/edit an exam + its full question set atomically |
+| `GET /api/admin/exams/[id]` | ✅ Built — full (unsanitized) exam+questions for the edit flow |
+| `GET /api/admin/exams/[id]/analytics` | ✅ Built — merit list with phone numbers joined in (kept separate from the student-facing merit list, which never carries PII) for the PDF export |
 | `POST /api/admin/students/bulk` | ✅ Built — generates + hashes each `studentId` before writing, gated by the admin session cookie |
 
-**Not yet built:** just the exam-editing "confirm you're editing a live
-exam" extra step, and per-guest attempt-limiting (both already flagged
-honestly in their route files' comments above). Everything else,
-including the frontend actually calling these routes, is done — see
-`lib/dataLayer.js`, which is the one file every page now goes through.
-`firebaseReady` (from `lib/firebaseClient.js`) decides at runtime whether
-a page hits the real API or the Phase 1 mock data — nothing else needs to
-change when `.env.local` gets filled in.
-
-Two of these — `submit` and `result` — are stubbed out with real Admin SDK
-code in this delivery (`app/api/exam/[id]/submit/route.js` and
-`app/api/exam/[id]/questions/route.js`) so you can see the actual pattern;
-the rest follow the same shape.
+**Not yet built:** the exam-editing "confirm you're editing a live exam"
+extra step, and per-guest attempt-limiting (both flagged honestly in
+their route files' comments). Everything else, including the frontend
+actually calling these routes, is done — see `lib/dataLayer.js`, which is
+the one file every student-facing page goes through. `firebaseReady`
+(from `lib/firebaseClient.js`) decides at runtime whether a page hits the
+real API or the Phase 1 mock data.

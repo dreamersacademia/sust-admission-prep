@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2, Upload, Eye, ShieldCheck, FilePenLine, LogOut } from "lucide-react";
+import Link from "next/link";
+import { Plus, Trash2, Upload, Eye, ShieldCheck, FilePenLine, LogOut, Trophy } from "lucide-react";
 import MathRenderer from "@/components/MathRenderer";
-import { getAllExams, getQuestionsForExam } from "@/lib/mockData";
+import { fetchAllExams } from "@/lib/dataLayer";
+import { firebaseReady } from "@/lib/firebaseClient";
 import { cn } from "@/lib/utils";
 
 const emptyQuestion = () => ({
@@ -17,7 +19,7 @@ const emptyQuestion = () => ({
 
 export default function AdminDashboardPage() {
   const router = useRouter();
-  const existingExams = getAllExams();
+  const [existingExams, setExistingExams] = useState([]);
   const [editingExamId, setEditingExamId] = useState("");
   const [examTitle, setExamTitle] = useState("");
   const [unit, setUnit] = useState("A");
@@ -30,16 +32,25 @@ export default function AdminDashboardPage() {
   const [questions, setQuestions] = useState([emptyQuestion()]);
   const [csvText, setCsvText] = useState("");
   const [csvPreview, setCsvPreview] = useState([]);
+  const [previewChecked, setPreviewChecked] = useState(false); // has "Preview" been clicked at least once
   const [uploadResults, setUploadResults] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [resetIds, setResetIds] = useState(false);
 
+  // Real exam list once Firebase is wired up (fetchAllExams goes through
+  // the same firebaseReady branch every student page uses) — previously
+  // this dropdown always showed the Phase 1 mock exams regardless of
+  // what had actually been published to Firestore.
+  useEffect(() => {
+    fetchAllExams().then(setExistingExams).catch(() => setExistingExams([]));
+  }, []);
+
   // Exams are editable anytime — loading one pulls its current questions
-  // into the same editor used to create new ones. Phase 2: this writes
-  // straight to the live `exams/{id}` doc, so edits to an exam that's
-  // currently live should go through an extra confirmation (changing a
-  // question mid-exam affects everyone taking it right now).
+  // (full, including answer keys — via the admin-only endpoint, not the
+  // student-facing sanitized one) into the same editor used to create
+  // new ones. Not yet added: an extra confirmation step for editing an
+  // exam that's CURRENTLY live (see app/api/admin/exams/route.js's note).
   function loadExamForEditing(examId) {
     setEditingExamId(examId);
     if (!examId) {
@@ -54,8 +65,23 @@ export default function AdminDashboardPage() {
       setQuestions([emptyQuestion()]);
       return;
     }
-    const exam = existingExams.find((e) => e.id === examId);
-    const qs = getQuestionsForExam(examId);
+
+    if (!firebaseReady) {
+      const exam = existingExams.find((e) => e.id === examId);
+      applyExamToForm(exam, exam?.questions || []);
+      return;
+    }
+
+    fetch(`/api/admin/exams/${examId}`)
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+        applyExamToForm(data.exam, data.questions);
+      })
+      .catch(() => applyExamToForm(null, []));
+  }
+
+  function applyExamToForm(exam, qs) {
     setExamTitle(exam?.title || "");
     setUnit(exam?.unit || "A");
     setExamType(exam?.type || "practice");
@@ -72,6 +98,7 @@ export default function AdminDashboardPage() {
             options: q.options,
             correctIndex: q.correctIndex,
             explanation: q.explanation,
+            videoUrl: q.videoUrl || "",
           }))
         : [emptyQuestion()]
     );
@@ -146,11 +173,20 @@ export default function AdminDashboardPage() {
   }
 
   function parseCsv(text) {
-    // Expected header: phone,name,group
+    // Accepts EITHER a header line ("phone,name,group") followed by data,
+    // OR bare data lines with no header at all — detected by checking
+    // whether the first line's first field looks like a real phone
+    // number. Previously this always consumed line 1 as a header, so a
+    // single data-only line (no header) silently parsed to zero rows —
+    // the button looked broken but was actually just discarding your
+    // only line as a "header."
     const lines = text.trim().split("\n").filter(Boolean);
-    const [header, ...rows] = lines;
-    if (!header) return [];
-    const cols = header.split(",").map((c) => c.trim());
+    if (lines.length === 0) return [];
+
+    const looksLikeDataRow = /^01[3-9]\d{8}/.test(lines[0].split(",")[0].trim());
+    const cols = ["phone", "name", "group"];
+    const rows = looksLikeDataRow ? lines : lines.slice(1);
+
     return rows.map((row) => {
       const values = row.split(",").map((v) => v.trim());
       return Object.fromEntries(cols.map((c, i) => [c, values[i]]));
@@ -195,6 +231,15 @@ export default function AdminDashboardPage() {
               <option key={e.id} value={e.id}>{e.title} ({e.type})</option>
             ))}
           </select>
+
+          {editingExamId && (
+            <Link
+              href={`/admin/results/${editingExamId}`}
+              className="mt-2 flex items-center justify-center gap-1.5 rounded-lg border border-ink-100 dark:border-ink-700 py-2 text-xs font-semibold text-ink-600 dark:text-ink-100"
+            >
+              <Trophy size={13} /> View results & merit for this exam
+            </Link>
+          )}
         </div>
 
         {/* Exam meta */}
@@ -375,11 +420,21 @@ export default function AdminDashboardPage() {
             className="w-full rounded-lg border border-ink-100 dark:border-ink-700 bg-ink-50 dark:bg-ink-950 px-3 py-2 font-mono text-xs outline-none"
           />
           <button
-            onClick={() => setCsvPreview(parseCsv(csvText))}
+            onClick={() => {
+              setCsvPreview(parseCsv(csvText));
+              setPreviewChecked(true);
+            }}
             className="mt-2 flex items-center gap-1.5 rounded-lg border border-ink-100 dark:border-ink-700 px-3 py-1.5 text-xs font-semibold"
           >
             <Upload size={14} /> Preview parsed rows
           </button>
+
+          {previewChecked && csvPreview.length === 0 && (
+            <p className="mt-2 text-xs text-danger">
+              No valid rows found — check each line has a phone number
+              starting with 01 (e.g. <code className="font-mono">01812345678,Name,A_ONLY</code>).
+            </p>
+          )}
 
           {csvPreview.length > 0 && (
             <div className="mt-3 overflow-x-auto rounded-lg border border-ink-100 dark:border-ink-700">

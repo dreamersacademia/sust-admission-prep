@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Radio, Archive, CalendarClock, Dumbbell, Clock, Lock, Hourglass, RotateCcw } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import Mascot from "@/components/Mascot";
-import { fetchAllExams, checkAttempted, getCurrentStudent } from "@/lib/dataLayer";
+import { fetchAllExams, fetchCurrentStudent, checkAttempted } from "@/lib/dataLayer";
 import { getPracticeResult } from "@/lib/attemptStore";
 import { examStatus, msUntil, formatDuration } from "@/lib/timeWindow";
 import { cn } from "@/lib/utils";
@@ -32,21 +32,32 @@ function classify(exam, nowMs, attempted) {
 }
 
 export default function DashboardPage() {
-  const student = getCurrentStudent();
+  const [student, setStudent] = useState(null); // null = loading
   const [allExams, setAllExams] = useState(null); // null = loading
   const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
-    fetchAllExams().then(setAllExams).catch((err) => setLoadError(err.message));
+    Promise.all([fetchCurrentStudent(), fetchAllExams()])
+      .then(([studentData, examsData]) => {
+        setStudent(studentData);
+        setAllExams(examsData);
+      })
+      .catch((err) => setLoadError(err.message));
   }, []);
 
   const availableUnits = useMemo(() => {
+    if (!student) return ["A", "B"];
     if (student.unitPermission === "A_ONLY") return ["A"];
     if (student.unitPermission === "B_ONLY") return ["B"];
     return ["A", "B"];
-  }, [student.unitPermission]);
+  }, [student]);
 
-  const [unit, setUnit] = useState(availableUnits[0]);
+  const [unit, setUnit] = useState("A");
+  useEffect(() => {
+    if (student) setUnit(availableUnits[0]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [student]);
+
   const [activeTab, setActiveTab] = useState("live");
   const [nowMs, setNowMs] = useState(Date.now());
 
@@ -57,10 +68,21 @@ export default function DashboardPage() {
 
   const exams = (allExams || []).filter((e) => {
     if (e.unit && e.unit !== unit) return false;
-    if (unit === "B" && student.track !== "science" && e.track === "science") return false;
+    if (unit === "B" && student?.track !== "science" && e.track === "science") return false;
     const attempted = checkAttempted(e.id, e);
     return classify(e, nowMs, attempted) === activeTab;
   });
+
+  if (loadError) {
+    return <p className="p-6 text-center text-sm text-danger">{loadError}</p>;
+  }
+  if (!student || allExams === null) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-ink-50 dark:bg-ink-950">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-ink-200 dark:border-ink-700 border-t-marigold-500" />
+      </div>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-ink-50 dark:bg-ink-950 pb-16">
@@ -116,21 +138,10 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {loadError && <p className="mt-6 text-center text-xs text-danger">{loadError}</p>}
-
-        {allExams === null && !loadError && (
-          <div className="mt-4 space-y-3">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="h-24 animate-pulse rounded-xl2 border border-ink-100 dark:border-ink-800 bg-white dark:bg-ink-900" />
-            ))}
-          </div>
-        )}
-
-        {allExams !== null && (
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeTab + unit}
-              initial={{ opacity: 0, y: 8 }}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab + unit}
+            initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2 }}
@@ -144,7 +155,6 @@ export default function DashboardPage() {
               ))}
             </motion.div>
           </AnimatePresence>
-        )}
       </section>
     </main>
   );

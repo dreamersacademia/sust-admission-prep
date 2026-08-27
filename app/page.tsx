@@ -1,14 +1,8 @@
 import Link from 'next/link';
-import { prisma } from '@/lib/prisma';
-
 export const dynamic = 'force-dynamic';
 
-export default async function HomePage() {
-  const exams = await prisma.exam.findMany({
-    where: { isActive: true },
-    orderBy: { createdAt: 'desc' },
-    include: { _count: { select: { questions: true, submissions: true } } },
-  });
+export default async function HomePage() { 
+  const exams :any[] =[];
 
   return (
     <main className="min-h-screen bg-parchment px-4 py-10">

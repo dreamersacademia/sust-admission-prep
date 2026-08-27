@@ -1,0 +1,64 @@
+// Free-tier friendly: point `url` at a Supabase Postgres connection string
+// for production, or "file:./dev.db" with provider "sqlite" for local dev.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql" // swap to "sqlite" for local dev if preferred
+  url      = env("DATABASE_URL")
+}
+
+model Exam {
+  id              String       @id @default(cuid())
+  title           String
+  subject         String       // e.g. "Physics", "Math", "General"
+  durationMinutes Int          @default(30)
+  isActive        Boolean      @default(true)
+  shuffleQuestions Boolean     @default(true)
+  createdAt       DateTime     @default(now())
+
+  questions       Question[]
+  submissions     Submission[]
+}
+
+model Question {
+  id            String   @id @default(cuid())
+  examId        String
+  exam          Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+
+  // Question/options text supports inline LaTeX via $...$ and block via $$...$$
+  text          String
+  optionA       String
+  optionB       String
+  optionC       String
+  optionD       String
+  correctOption String   // "A" | "B" | "C" | "D" — NEVER sent to client before submission
+
+  explanation   String?  // shown after submission, also supports LaTeX
+  videoUrl      String?  // YouTube solution link, shown after submission
+  order         Int      @default(0)
+  marks         Float    @default(1)   // awarded for a correct answer
+  negativeMarks Float    @default(0)   // deducted for a wrong answer (0 = no negative marking); skipped questions are never penalized
+
+  @@index([examId, order])
+}
+
+model Submission {
+  id               String   @id @default(cuid())
+  examId           String
+  exam             Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+
+  studentName      String
+  studentRoll      String?
+  score            Float    // can be fractional/negative-adjusted when negative marking is on
+  totalMarks       Float
+  timeTakenSeconds Int
+  answers          Json     // { [questionId]: "A" | "B" | "C" | "D" }
+  tabSwitchCount   Int      @default(0) // anti-cheat telemetry, informational only
+  submittedAt      DateTime @default(now())
+
+  // Merit list sort: highest score first, then fastest time
+  @@index([examId, score, timeTakenSeconds])
+}

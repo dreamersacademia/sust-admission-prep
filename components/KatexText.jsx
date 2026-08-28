@@ -11,7 +11,7 @@ import 'katex/dist/katex.min.css';
  * $...$ -> inline math, $$...$$ -> block/display math. Everything else
  * renders as plain text so Bengali script needs no escaping.
  */
-export default function KatexText({ content }: { content: string }) {
+export default function KatexText({ content = '' }) {
   const parts = splitMixedContent(content);
 
   return (
@@ -33,14 +33,13 @@ export default function KatexText({ content }: { content: string }) {
   );
 }
 
-type Segment = { type: 'text' | 'inline' | 'block'; value: string };
-
-function splitMixedContent(input: string): Segment[] {
-  const segments: Segment[] = [];
+function splitMixedContent(input) {
+  if (!input) return [];
+  const segments = [];
   // Match $$...$$ first (block), then $...$ (inline), non-greedy
   const regex = /\$\$([\s\S]+?)\$\$|\$([^$\n]+?)\$/g;
   let lastIndex = 0;
-  let match: RegExpExecArray | null;
+  let match;
 
   while ((match = regex.exec(input)) !== null) {
     if (match.index > lastIndex) {

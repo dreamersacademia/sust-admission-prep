@@ -2,15 +2,16 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-export default function Timer({
-  totalSeconds,
-  onExpire,
-}: {
-  totalSeconds: number;
-  onExpire: () => void;
-}) {
+export default function Timer({ totalSeconds = 0, onExpire }) {
   const [remaining, setRemaining] = useState(totalSeconds);
   const expiredRef = useRef(false);
+  
+  // onExpire-এর রেফারেন্স ধরে রাখা যাতে useEffect বারবার রিস্টার্ট না হয়
+  const onExpireRef = useRef(onExpire);
+
+  useEffect(() => {
+    onExpireRef.current = onExpire;
+  }, [onExpire]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -19,15 +20,16 @@ export default function Timer({
           clearInterval(interval);
           if (!expiredRef.current) {
             expiredRef.current = true;
-            onExpire();
+            if (onExpireRef.current) onExpireRef.current();
           }
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
+
     return () => clearInterval(interval);
-  }, [onExpire]);
+  }, []); // ডিপেনডেন্সি খালি রাখায় টাইমার আর কখনই স্টাক হবে না
 
   const mins = Math.floor(remaining / 60);
   const secs = remaining % 60;

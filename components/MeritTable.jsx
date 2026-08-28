@@ -1,18 +1,16 @@
-type Row = {
-  id: string;
-  studentName: string;
-  studentRoll: string | null;
-  score: number;
-  totalMarks: number;
-  timeTakenSeconds: number;
-  submittedAt: Date;
-};
-
-function formatScore(n: number): string {
+function formatScore(n) {
+  if (n === undefined || n === null) return '0';
   return Number.isInteger(n) ? String(n) : n.toFixed(2);
 }
 
-export default function MeritTable({ rows }: { rows: Row[] }) {
+function formatDuration(seconds) {
+  if (!seconds && seconds !== 0) return '0:00';
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+export default function MeritTable({ rows = [] }) {
   return (
     <div className="overflow-x-auto rounded-lg border border-line bg-white">
       <table className="w-full text-left font-body text-sm">
@@ -28,7 +26,7 @@ export default function MeritTable({ rows }: { rows: Row[] }) {
         <tbody>
           {rows.map((row, i) => (
             <tr
-              key={row.id}
+              key={row.id || i}
               className={`border-b border-line/60 last:border-0 ${
                 i < 3 ? 'bg-signal/5 font-semibold' : ''
               }`}
@@ -57,10 +55,4 @@ export default function MeritTable({ rows }: { rows: Row[] }) {
       </table>
     </div>
   );
-}
-
-function formatDuration(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${m}:${String(s).padStart(2, '0')}`;
 }

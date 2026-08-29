@@ -399,7 +399,7 @@ export default function AdminDashboardPage() {
                 />
 
                 <p className="mb-1 mt-2 text-[10px] font-semibold uppercase tracking-wide text-ink-400">
-                  ব্যাখ্যার অপশন ২ — ভিডিও সমাধান (YouTube link, ঐচ্ছিক)
+                  ব্যাখ্যার অপশন ২ — ভিডিও সমাধান (YouTube link)
                 </p>
                 <input
                   value={q.videoUrl || ""}

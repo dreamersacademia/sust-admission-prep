@@ -164,7 +164,7 @@ export default function ResultPage() {
                             rel="noopener noreferrer"
                             className="flex items-center gap-1.5 rounded-lg bg-marigold-500/10 px-2.5 py-2 text-xs font-semibold text-marigold-600 dark:text-marigold-400"
                           >
-                            <PlayCircle size={14} /> ভিডিও সমাধান দেখো (YouTube-এ খুলবে)
+                            <PlayCircle size={14} /> ভিডিও সমাধান দেখো (YouTube-এ )
                             <ExternalLink size={11} className="ml-auto opacity-60" />
                           </a>
                         )}

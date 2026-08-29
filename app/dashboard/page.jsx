@@ -208,7 +208,7 @@ function ExamCard({ exam, nowMs }) {
       {isArchivedAttempted && (
         <div className="mt-3 space-y-2">
           <Link href={`/result/${exam.id}`} className="block rounded-lg bg-ink-900 dark:bg-marigold-500 py-2 text-center text-xs font-semibold text-white dark:text-ink-950">
-            ফলাফল দেখুন {exam.meritRank ? `· র‍্যাংক #${exam.meritRank}` : ""}
+            ফলাফল {exam.meritRank ? `· র‍্যাংক #${exam.meritRank}` : ""}
           </Link>
           <Link href={`/exam/${exam.id}?mode=practice`} className="flex items-center justify-center gap-1.5 rounded-lg border border-ink-200 dark:border-ink-700 py-2 text-center text-xs font-semibold text-ink-600 dark:text-ink-100">
             <RotateCcw size={13} /> পুনরায় প্র্যাকটিস করো
@@ -226,7 +226,7 @@ function ExamCard({ exam, nowMs }) {
           </Link>
           {practiceResult && (
             <Link href={`/result/${exam.id}?mode=practice`} className="block rounded-lg border border-ink-200 dark:border-ink-700 py-2 text-center text-xs font-semibold text-ink-600 dark:text-ink-100">
-              ফলাফল দেখুন
+              ফলাফল
             </Link>
           )}
         </div>
@@ -239,7 +239,7 @@ function ExamCard({ exam, nowMs }) {
           </Link>
           {practiceResult && (
             <Link href={`/result/${exam.id}?mode=practice`} className="block rounded-lg border border-ink-200 dark:border-ink-700 py-2 text-center text-xs font-semibold text-ink-600 dark:text-ink-100">
-              ফলাফল দেখুন
+              ফলাফল
             </Link>
           )}
         </div>

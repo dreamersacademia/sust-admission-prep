@@ -194,7 +194,7 @@ enforcement it needs):
   countdown, not the exam — and the dashboard card for it isn't even a
   clickable link.
 - **Archive has two distinct states**: an exam you actually took shows
-  "ফলাফল দেখুন" (locked, permanent) *plus* "পুনরায় প্র্যাকটিস করো" (practice
+  "ফলাফল" (locked, permanent) *plus* "পুনরায় প্র্যাকটিস করো" (practice
   retake, ungraded); a missed exam shows "প্র্যাকটিস হিসেবে পরীক্ষা দিন"
   instead, with unlimited retakes once you've tried it.
 - **Live exam results reveal in two stages**: your raw score shows

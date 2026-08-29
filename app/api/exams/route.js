@@ -7,7 +7,7 @@ import { finalizeIfOverdue } from "@/lib/server/examFinalize";
  * Powers the dashboard's four tabs. Metadata only — never questions.
  * When the caller is authenticated, attaches `attempted: boolean` per
  * exam so the dashboard doesn't need a separate round-trip per card to
- * know whether to show "পরীক্ষা দিন" vs "ফলাফল দেখুন".
+ * know whether to show "পরীক্ষা দিন" vs "ফলাফল".
  */
 export async function GET(request) {
   const decoded = await verifyRequest(request); // may be null — that's OK here

@@ -38,6 +38,7 @@ export async function POST(request) {
     startAt = null,
     endAt = null,
     durationMinutes,
+    negativeMarking = 0,
     questions = [],
   } = body;
 
@@ -60,6 +61,7 @@ export async function POST(request) {
     startAt: startAt ? new Date(startAt) : null,
     endAt: endAt ? new Date(endAt) : null,
     durationMinutes,
+    negativeMarking:Number(negativeMarking) || 0,
     totalMarks: questions.length,
     questionCount: questions.length,
     status: "published",

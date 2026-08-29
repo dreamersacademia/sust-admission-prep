@@ -24,6 +24,7 @@ export default function AdminDashboardPage() {
   const [examTitle, setExamTitle] = useState("");
   const [unit, setUnit] = useState("A");
   const [examType, setExamType] = useState("practice"); // "practice" | "live"
+  const [negativeMarking, setNegativeMarking] = useState(0); 
   const [scope, setScope] = useState("chapter");
   const [durationMinutes, setDurationMinutes] = useState(30);
   const [startAt, setStartAt] = useState("");
@@ -59,6 +60,7 @@ export default function AdminDashboardPage() {
       setExamType("practice");
       setScope("chapter");
       setDurationMinutes(30);
+      setNegativeMarking(0.25);
       setStartAt("");
       setEndAt("");
       setIsPublic(false);
@@ -87,6 +89,7 @@ export default function AdminDashboardPage() {
     setExamType(exam?.type || "practice");
     setScope(exam?.scope || "chapter");
     setDurationMinutes(exam?.durationMinutes || 30);
+    setNegativeMarking(exam?.negativeMarking || 0);
     setStartAt(exam?.startAt ? exam.startAt.slice(0, 16) : "");
     setEndAt(exam?.endAt ? exam.endAt.slice(0, 16) : "");
     setIsPublic(exam?.isPublic || false);
@@ -139,6 +142,7 @@ export default function AdminDashboardPage() {
         type: examType,
         scope,
         durationMinutes: Number(durationMinutes),
+        negativeMarking: Number(negativeMarking) || 0,
         startAt: examType === "live" && startAt ? new Date(startAt).toISOString() : null,
         endAt: examType === "live" && endAt ? new Date(endAt).toISOString() : null,
         isPublic,
@@ -324,6 +328,40 @@ export default function AdminDashboardPage() {
               onChange={(e) => setDurationMinutes(e.target.value)}
               className="w-full rounded-lg border border-ink-100 dark:border-ink-700 bg-ink-50 dark:bg-ink-950 px-3 py-2 text-sm outline-none"
             />
+          </label>
+          <label className="mt-3 block">
+            <span className="mb-1 block text-xs font-medium text-ink-600 dark:text-ink-100">
+              নেগেটিভ মার্কিং (প্রতি ভুল উত্তরে কর্তন)
+            </span>
+            <div className="flex gap-2">
+              {[0, 0.25, 0.5, 1].map((val) => (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => setNegativeMarking(val)}
+                  className={cn(
+                    "flex-1 rounded-lg border py-1.5 text-xs font-semibold",
+                    Number(negativeMarking) === val
+                      ? "border-marigold-500 bg-ink-900 text-white dark:bg-marigold-500 dark:text-ink-950"
+                      : "border-ink-100 dark:border-ink-700"
+                  )}
+                >
+                  {val === 0 ? "নেই" : `-${val}`}
+                </button>
+              ))}
+            </div>
+            <input
+              type="number"
+              step="0.05"
+              min={0}
+              value={negativeMarking}
+              onChange={(e) => setNegativeMarking(e.target.value)}
+              placeholder="কাস্টম মান"
+              className="mt-1.5 w-full rounded-lg border border-ink-100 dark:border-ink-700 bg-ink-50 dark:bg-ink-950 px-3 py-2 text-sm outline-none"
+            />
+            <p className="mt-1 text-[10px] text-ink-400" lang="bn">
+              যেমন 0.25 মানে প্রতিটি ভুল উত্তরে ০.২৫ নম্বর কাটা যাবে। স্কিপ করা প্রশ্নে কোনো কর্তন নেই। ০ দিলে নেগেটিভ মার্কিং বন্ধ থাকবে।
+            </p>
           </label>
         </div>
 

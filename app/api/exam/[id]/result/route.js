@@ -59,10 +59,14 @@ export async function GET(request, { params }) {
   // is score-only, unconditionally — see the rule above.
   const practiceAfterOfficial = isPracticeMode && hasOfficialAttempt;
 
-  if (practiceAfterOfficial || (isWindowed && countsTowardMerit && !windowClosed)) {
+if (practiceAfterOfficial || (isWindowed && countsTowardMerit && !windowClosed)) {
     return NextResponse.json({
       correctCount: attempt.correctCount,
+      wrongCount: attempt.wrongCount ?? null,
+      skippedCount: attempt.skippedCount ?? null,
+      netScore: attempt.netScore ?? attempt.correctCount,
       total: attempt.total,
+      negativeMarking: exam.negativeMarking || 0,
       detailsLocked: true,
     });
   }
@@ -83,9 +87,13 @@ export async function GET(request, { params }) {
     stats = analytics.stats;
   }
 
-  return NextResponse.json({
+return NextResponse.json({
     correctCount: attempt.correctCount,
+    wrongCount: attempt.wrongCount ?? null,
+    skippedCount: attempt.skippedCount ?? null,
+    netScore: attempt.netScore ?? attempt.correctCount,
     total: attempt.total,
+    negativeMarking: exam.negativeMarking || 0,
     answers: attempt.answers,
     questions,
     merit,

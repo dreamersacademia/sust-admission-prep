@@ -52,10 +52,14 @@ export default function ResultPage() {
     );
   }
 
-  const { correctCount, total, answers = {}, questions = [], merit = [], stats = {}, detailsLocked } = result;
-  const scorePct = total ? Math.round((correctCount / total) * 100) : 0;
+const {
+    correctCount, wrongCount, skippedCount, netScore, negativeMarking = 0,
+    total, answers = {}, questions = [], merit = [], stats = {}, detailsLocked,
+  } = result;
+  const displayScore = netScore ?? correctCount;
+  const scorePct = total ? Math.round((displayScore / total) * 100) : 0;
   const mood = moodForScore(scorePct);
-
+  const formattedScore = Number.isInteger(displayScore) ? displayScore : displayScore.toFixed(2);
   return (
     <main className="min-h-screen bg-ink-50 dark:bg-ink-950 pb-16">
       <header className="border-b border-ink-100 dark:border-ink-800 px-4 py-4 text-center">
@@ -74,9 +78,15 @@ export default function ResultPage() {
           <section className="px-4 py-6 text-center">
             <Mascot mood={mood} size="lg" ctaLabel="ড্যাশবোর্ডে যাও" onCta={() => router.push("/dashboard")} />
             <p className="mt-4 font-display text-3xl font-bold text-ink-900 dark:text-white">
-              {correctCount}<span className="text-lg text-ink-400">/{total}</span>
+              {formattedScore}<span className="text-lg text-ink-400">/{total}</span>
             </p>
             <p className="text-xs text-ink-400">তোমার স্কোর — {scorePct}%</p>
+            {(wrongCount !== null && wrongCount !== undefined) && (
+              <p className="mt-1 text-[11px] text-ink-400" lang="bn">
+                সঠিক {correctCount} · ভুল {wrongCount} · স্কিপ {skippedCount}
+                {negativeMarking > 0 && ` · নেগেটিভ মার্কিং: -${negativeMarking}/ভুল`}
+              </p>
+            )}
           </section>
 
           {detailsLocked ? (

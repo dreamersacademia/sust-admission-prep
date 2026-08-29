@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/server/firebaseAdmin";
 import { randomUUID } from "crypto";
+import { scoreAttempt } from "@/lib/server/scoring";
 
 /**
  * POST /api/exam/[id]/guest-submit
@@ -13,7 +14,8 @@ import { randomUUID } from "crypto";
  *     in the UI.
  *   - Each request gets a fresh `attempts` doc — grading is still 100%
  *     server-side, same as registered students, so a guest can't submit
- *     a hand-edited score either.
+ *     a hand-edited score either. Negative marking applies identically
+ *     to guests as to registered students (same exam, same rules).
  *
  * Known open gap, flagged honestly rather than silently ignored: without
  * an account, "one attempt per guest" can only be approximately enforced
@@ -37,14 +39,14 @@ export async function POST(request, { params }) {
   if (!examSnap.exists || !examSnap.data().isPublic) {
     return NextResponse.json({ error: "This exam is not open to guests" }, { status: 403 });
   }
+  const negativeMarking = examSnap.data().negativeMarking || 0;
 
   const questionsSnap = await adminDb
     .collection("exams").doc(examId)
     .collection("questions")
     .get();
   const questions = questionsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-  const correctCount = questions.filter((q) => answers[q.id] === q.correctIndex).length;
-  const total = questions.length;
+  const scored = scoreAttempt(questions, answers, negativeMarking);
 
   const attemptId = `guest_${randomUUID()}`;
   await adminDb.collection("attempts").doc(attemptId).set({
@@ -55,10 +57,9 @@ export async function POST(request, { params }) {
     guestName: guestName.trim(),
     guestCollege: guestCollege.trim(),
     answers,
-    correctCount,
-    total,
+    ...scored,
     submittedAt: new Date(),
   });
 
-  return NextResponse.json({ correctCount, total });
+  return NextResponse.json(scored);
 }

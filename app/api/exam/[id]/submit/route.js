@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { adminDb, verifyRequest } from "@/lib/server/firebaseAdmin";
 import { FieldValue } from "firebase-admin/firestore";
+import { scoreAttempt } from "@/lib/server/scoring";
 
 /**
  * POST /api/exam/[id]/submit
@@ -22,6 +23,10 @@ import { FieldValue } from "firebase-admin/firestore";
  *      client has never seen) and write `status: "submitted"` in the same
  *      transaction, so a duplicate request racing in at the same moment
  *      can't slip through between the check and the write.
+ *
+ * Negative marking: read from the exam's `negativeMarking` field (marks
+ * deducted per wrong answer, 0 if unset) and applied via the shared
+ * scoreAttempt() helper — see lib/server/scoring.js.
  */
 export async function POST(request, { params }) {
   const decoded = await verifyRequest(request);
@@ -41,6 +46,9 @@ export async function POST(request, { params }) {
   const studentName = studentSnap.exists ? studentSnap.data().name : "Student";
   const studentCollege = studentSnap.exists ? studentSnap.data().college || null : null;
 
+  const examSnap = await adminDb.collection("exams").doc(examId).get();
+  const negativeMarking = examSnap.exists ? examSnap.data().negativeMarking || 0 : 0;
+
   const questionsSnap = await adminDb
     .collection("exams").doc(examId)
     .collection("questions")
@@ -50,18 +58,17 @@ export async function POST(request, { params }) {
   // Practice attempts are intentionally NOT locked and have no deadline —
   // write-through, no transaction needed, unlimited retakes by design.
   if (isPractice) {
-    const correctCount = questions.filter((q) => clientAnswers[q.id] === q.correctIndex).length;
+    const scored = scoreAttempt(questions, clientAnswers, negativeMarking);
     const practiceId = `${decoded.uid}_${examId}_practice`;
     await adminDb.collection("attempts").doc(practiceId).set({
       studentAuthUid: decoded.uid,
       examId,
       isPractice: true,
       answers: clientAnswers,
-      correctCount,
-      total: questions.length,
+      ...scored,
       submittedAt: FieldValue.serverTimestamp(),
     });
-    return NextResponse.json({ correctCount, total: questions.length });
+    return NextResponse.json(scored);
   }
 
   const attemptId = `${decoded.uid}_${examId}`;
@@ -83,7 +90,7 @@ export async function POST(request, { params }) {
       // being hit without /start — a fallback, not the normal path):
       // trust the client's final payload.
       const finalAnswers = pastDeadline ? existing.answers || {} : clientAnswers;
-      const correctCount = questions.filter((q) => finalAnswers[q.id] === q.correctIndex).length;
+      const scored = scoreAttempt(questions, finalAnswers, negativeMarking);
 
       const finalized = {
         studentAuthUid: decoded.uid,
@@ -93,8 +100,7 @@ export async function POST(request, { params }) {
         isPractice: false,
         status: "submitted",
         answers: finalAnswers,
-        correctCount,
-        total: questions.length,
+        ...scored,
         submittedAt: pastDeadline ? existing.deadline : Date.now(),
       };
       tx.set(attemptRef, finalized, { merge: true });
@@ -109,5 +115,11 @@ export async function POST(request, { params }) {
 
   // Immediate score only — explanations/video/merit come from
   // /api/exam/[id]/result once the window closes for everyone.
-  return NextResponse.json({ correctCount: result.correctCount, total: result.total });
+  return NextResponse.json({
+    correctCount: result.correctCount,
+    wrongCount: result.wrongCount,
+    skippedCount: result.skippedCount,
+    total: result.total,
+    netScore: result.netScore,
+  });
 }

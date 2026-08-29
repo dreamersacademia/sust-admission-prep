@@ -97,15 +97,22 @@ export default function PublicExamPage() {
     );
   }
 
-  if (submitted && scoreResult) {
-    const scorePct = scoreResult.total ? Math.round((scoreResult.correctCount / scoreResult.total) * 100) : 0;
+ if (submitted && scoreResult) {
+    const displayScore = scoreResult.netScore ?? scoreResult.correctCount;
+    const scorePct = scoreResult.total ? Math.round((displayScore / scoreResult.total) * 100) : 0;
+    const formattedScore = Number.isInteger(displayScore) ? displayScore : displayScore.toFixed(2);
     return (
       <main className="flex min-h-screen flex-col items-center justify-center gap-3 bg-ink-50 dark:bg-ink-950 px-6 text-center">
         <Mascot mood={moodForScore(scorePct)} size="lg" />
         <h1 className="font-display text-base font-semibold" lang="bn">জমা হয়েছে, ধন্যবাদ {guestName}!</h1>
         <p className="font-display text-3xl font-bold text-ink-900 dark:text-white">
-          {scoreResult.correctCount}<span className="text-lg text-ink-400">/{scoreResult.total}</span>
+          {formattedScore}<span className="text-lg text-ink-400">/{scoreResult.total}</span>
         </p>
+        {scoreResult.wrongCount !== undefined && (
+          <p className="text-[11px] text-ink-400" lang="bn">
+            সঠিক {scoreResult.correctCount} · ভুল {scoreResult.wrongCount} · স্কিপ {scoreResult.skippedCount}
+          </p>
+        )}
         <p className="flex items-center gap-1.5 text-xs text-ink-400" lang="bn"><Trophy size={14} /> তোমার নাম ও {guestCollege} মেরিট লিস্টে যুক্ত হয়েছে</p>
         <p className="max-w-xs text-[11px] text-ink-400" lang="bn">
           {windowStillOpen

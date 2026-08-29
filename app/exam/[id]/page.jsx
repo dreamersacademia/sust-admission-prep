@@ -51,48 +51,58 @@ export default function ExamEnginePage() {
     return () => clearInterval(t);
   }, [status]);
 
-  const [serverDriftMs] = useState(0);
-  const examEndAt = useRef(null);
-  const [remainingMs, setRemainingMs] = useState(0);
-  const [startError, setStartError] = useState("");
+const [serverDriftMs] = useState(0);
+const [examEndAt, setExamEndAt] = useState(null); // was a ref — see fix note below
+const [remainingMs, setRemainingMs] = useState(0);
+const [startError, setStartError] = useState("");
 
-  // Opens (or resumes) the attempt with an IMMUTABLE deadline. This is
-  // what stops "close the tab, reopen, get a fresh timer" — see
-  // startExamAttempt's comment in lib/dataLayer.js. Practice mode skips
-  // this entirely (unlimited, no deadline to protect).
-  useEffect(() => {
-    if (!exam || status === "not_started" || status === "ended") return;
+// Opens (or resumes) the attempt with an IMMUTABLE deadline. This is
+// what stops "close the tab, reopen, get a fresh timer" — see
+// startExamAttempt's comment in lib/dataLayer.js. Practice mode skips
+// this entirely (unlimited, no deadline to protect).
+//
+// FIX: examEndAt used to be a ref. Setting a ref doesn't trigger a
+// re-render, so the interval-setup effect below (which only re-runs when
+// its OWN dependencies change) never re-ran once the deadline actually
+// arrived from startExamAttempt's async response — the timer would set
+// remainingMs exactly once and then sit frozen forever, since no interval
+// was ever created. Making it real state fixes this: setting it causes a
+// re-render, and it's now a dependency of the interval effect, so the
+// interval reliably gets created the moment the deadline is known.
+useEffect(() => {
+  if (!exam || status === "not_started" || status === "ended") return;
 
-    if (!isLiveType) {
-      // Practice / non-windowed exam — plain client-side timer is fine,
-      // nothing to protect against reopening.
-      examEndAt.current = Date.now() + (exam.durationMinutes || 60) * 60 * 1000;
-      setRemainingMs(Math.max(0, examEndAt.current - Date.now()));
-      return;
-    }
+  if (!isLiveType) {
+    // Practice / non-windowed exam — plain client-side timer is fine,
+    // nothing to protect against reopening.
+    const deadline = Date.now() + (exam.durationMinutes || 60) * 60 * 1000;
+    setExamEndAt(deadline);
+    setRemainingMs(Math.max(0, deadline - Date.now()));
+    return;
+  }
 
-    startExamAttempt(id, { durationMinutes: exam.durationMinutes, windowEndAt: exam.endAt })
-      .then(({ deadline }) => {
-        examEndAt.current = deadline;
-        setRemainingMs(Math.max(0, deadline - Date.now()));
-      })
-      .catch((err) => {
-        if (err.message === "Already submitted") {
-          router.replace(`/result/${id}`);
-        } else {
-          setStartError(err.message || "পরীক্ষা শুরু করতে সমস্যা হয়েছে।");
-        }
-      });
-  }, [exam, status, isLiveType, id, router]);
+  startExamAttempt(id, { durationMinutes: exam.durationMinutes, windowEndAt: exam.endAt })
+    .then(({ deadline }) => {
+      setExamEndAt(deadline);
+      setRemainingMs(Math.max(0, deadline - Date.now()));
+    })
+    .catch((err) => {
+      if (err.message === "Already submitted") {
+        router.replace(`/result/${id}`);
+      } else {
+        setStartError(err.message || "পরীক্ষা শুরু করতে সমস্যা হয়েছে।");
+      }
+    });
+}, [exam, status, isLiveType, id, router]);
 
-  useEffect(() => {
-    if (status === "not_started" || !examEndAt.current) return;
-    const tick = setInterval(() => {
-      const correctedNow = Date.now() + serverDriftMs;
-      setRemainingMs(Math.max(0, examEndAt.current - correctedNow));
-    }, 1000);
-    return () => clearInterval(tick);
-  }, [serverDriftMs, status]);
+useEffect(() => {
+  if (status === "not_started" || !examEndAt) return;
+  const tick = setInterval(() => {
+    const correctedNow = Date.now() + serverDriftMs;
+    setRemainingMs(Math.max(0, examEndAt - correctedNow));
+  }, 1000);
+  return () => clearInterval(tick);
+}, [serverDriftMs, status, examEndAt]);
 
   const [answers, setAnswers] = useState({});
   const [pending, setPending] = useState(null);
@@ -210,7 +220,7 @@ export default function ExamEnginePage() {
   }, [answers, id, isPracticeMode, exam, router]);
 
   useEffect(() => {
-    if (status === "in_window" && examEndAt.current && remainingMs === 0) submitExam();
+    if (status === "in_window" && examEndAt && remainingMs === 0) submitExam();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [remainingMs, status]);
 

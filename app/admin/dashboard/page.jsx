@@ -184,7 +184,7 @@ export default function AdminDashboardPage() {
     if (lines.length === 0) return [];
 
     const looksLikeDataRow = /^01[3-9]\d{8}/.test(lines[0].split(",")[0].trim());
-    const cols = ["phone", "name", "group"];
+    const cols = ["phone", "name", "group", "college"];
     const rows = looksLikeDataRow ? lines : lines.slice(1);
 
     return rows.map((row) => {
@@ -385,6 +385,9 @@ export default function AdminDashboardPage() {
                   ))}
                 </div>
 
+                <p className="mb-1 mt-3 text-[10px] font-semibold uppercase tracking-wide text-ink-400">
+                  ব্যাখ্যার অপশন ১ — টেক্সট
+                </p>
                 <textarea
                   value={q.explanation}
                   onChange={(e) =>
@@ -392,7 +395,17 @@ export default function AdminDashboardPage() {
                   }
                   placeholder="Explanation (shown after results unlock)"
                   rows={2}
-                  className="mt-2 w-full rounded-lg border border-ink-100 dark:border-ink-700 bg-ink-50 dark:bg-ink-950 px-3 py-2 text-sm outline-none"
+                  className="w-full rounded-lg border border-ink-100 dark:border-ink-700 bg-ink-50 dark:bg-ink-950 px-3 py-2 text-sm outline-none"
+                />
+
+                <p className="mb-1 mt-2 text-[10px] font-semibold uppercase tracking-wide text-ink-400">
+                  ব্যাখ্যার অপশন ২ — ভিডিও সমাধান (YouTube link, ঐচ্ছিক)
+                </p>
+                <input
+                  value={q.videoUrl || ""}
+                  onChange={(e) => updateQuestion(q.id, { videoUrl: e.target.value })}
+                  placeholder="https://youtu.be/... — ছাত্ররা ট্যাপ করলে সরাসরি YouTube-এ চলে যাবে"
+                  className="w-full rounded-lg border border-ink-100 dark:border-ink-700 bg-ink-50 dark:bg-ink-950 px-3 py-2 text-sm outline-none"
                 />
               </div>
             ))}
@@ -410,12 +423,12 @@ export default function AdminDashboardPage() {
         <div className="rounded-xl2 border border-ink-100 dark:border-ink-800 bg-white dark:bg-ink-900 p-4 shadow-card">
           <h2 className="mb-1 text-sm font-semibold">Bulk student upload</h2>
           <p className="mb-3 text-[11px] text-ink-400">
-            CSV columns: <code className="font-mono">phone,name,group</code>
+            CSV columns: <code className="font-mono">phone,name,group,college</code>
           </p>
           <textarea
             value={csvText}
             onChange={(e) => setCsvText(e.target.value)}
-            placeholder={"phone,name,group\n01812345678,Tahmid Rahman,A_ONLY"}
+            placeholder={"phone,name,group,college\n01812345678,Tahmid Rahman,A_ONLY,Notre Dame College"}
             rows={4}
             className="w-full rounded-lg border border-ink-100 dark:border-ink-700 bg-ink-50 dark:bg-ink-950 px-3 py-2 font-mono text-xs outline-none"
           />
@@ -432,7 +445,7 @@ export default function AdminDashboardPage() {
           {previewChecked && csvPreview.length === 0 && (
             <p className="mt-2 text-xs text-danger">
               No valid rows found — check each line has a phone number
-              starting with 01 (e.g. <code className="font-mono">01812345678,Name,A_ONLY</code>).
+              starting with 01 (e.g. <code className="font-mono">01812345678,Name,A_ONLY,College Name</code>).
             </p>
           )}
 
@@ -498,6 +511,7 @@ export default function AdminDashboardPage() {
                   <tr>
                     <th className="px-2 py-1.5 font-semibold">Phone</th>
                     <th className="px-2 py-1.5 font-semibold">Name</th>
+                    <th className="px-2 py-1.5 font-semibold">College</th>
                     <th className="px-2 py-1.5 font-semibold">Status</th>
                     <th className="px-2 py-1.5 font-semibold">Student ID</th>
                   </tr>
@@ -507,6 +521,7 @@ export default function AdminDashboardPage() {
                     <tr key={i} className="border-t border-marigold-500/20">
                       <td className="px-2 py-1.5">{r.phone}</td>
                       <td className="px-2 py-1.5">{r.name}</td>
+                      <td className="px-2 py-1.5">{r.college || "—"}</td>
                       <td className="px-2 py-1.5">
                         {r.status === "exists" ? (
                           <span className="text-ink-400">already registered</span>

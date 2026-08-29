@@ -5,8 +5,11 @@ import { verifyAdminSessionToken, SESSION_COOKIE } from "@/lib/server/adminSessi
 
 /**
  * POST /api/admin/students/bulk
- * Body: { rows: [{ phone, name, group }], resetIds?: boolean }
+ * Body: { rows: [{ phone, name, group, college }], resetIds?: boolean }
  *   `group` is expected to already be one of "A_ONLY" | "B_ONLY" | "BOTH"
+ *   `college` is free text, shown on the merit list/PDF alongside guest
+ *   entries' colleges (see lib/server/examAnalytics.js) — no phone number
+ *   is ever put on the merit list or PDF, per spec.
  *   (matches the CSV format described in the admin dashboard UI).
  *
  * Gated by the same admin session cookie middleware.js checks — this is
@@ -44,9 +47,9 @@ export async function POST(request) {
   const batch = adminDb.batch();
 
   for (const row of rows) {
-    const { phone, name, group } = row;
+    const { phone, name, group, college = "" } = row;
     if (!/^01[3-9]\d{8}$/.test(phone || "")) {
-      results.push({ phone, name, status: "skipped", reason: "Invalid phone" });
+      results.push({ phone, name, college: row.college, status: "skipped", reason: "Invalid phone" });
       continue;
     }
 
@@ -57,7 +60,7 @@ export async function POST(request) {
       .get();
 
     if (!existingSnap.empty && !resetIds) {
-      results.push({ phone, name, status: "exists", reason: "Already registered — check 'reset ID' to reissue" });
+      results.push({ phone, name, college, status: "exists", reason: "Already registered — check 'reset ID' to reissue" });
       continue;
     }
 
@@ -69,8 +72,8 @@ export async function POST(request) {
       // Reissue: update the SAME doc (keeps their attempt history, name
       // edits, etc. intact) rather than creating a new student identity.
       const docRef = existingSnap.docs[0].ref;
-      batch.set(docRef, { name, unitPermission, studentIdHash, updatedAt: new Date() }, { merge: true });
-      results.push({ phone, name, status: "id-reset", generatedId });
+      batch.set(docRef, { name, unitPermission, college, studentIdHash, updatedAt: new Date() }, { merge: true });
+      results.push({ phone, name, college, status: "id-reset", generatedId });
       continue;
     }
 
@@ -79,6 +82,7 @@ export async function POST(request) {
       name,
       mobile: phone,
       unitPermission,
+      college: college || null,
       track: null,
       studentIdHash,
       authUid: null,
@@ -86,7 +90,7 @@ export async function POST(request) {
       createdBy: session.uid || session.email,
     });
 
-    results.push({ phone, name, status: "created", generatedId });
+    results.push({ phone, name, college, status: "created", generatedId });
   }
 
   await batch.commit();

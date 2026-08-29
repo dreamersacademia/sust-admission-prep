@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
-import { PlayCircle, X, CheckCircle2, XCircle, Trophy, GraduationCap } from "lucide-react";
+import { PlayCircle, ExternalLink, CheckCircle2, XCircle, Trophy, GraduationCap } from "lucide-react";
 import MathRenderer from "@/components/MathRenderer";
 import Mascot from "@/components/Mascot";
 import { fetchExamById, fetchExamResult, fetchCurrentStudent } from "@/lib/dataLayer";
@@ -33,7 +33,6 @@ export default function ResultPage() {
     return () => { cancelled = true; };
   }, [id, isPracticeMode]);
 
-  const [activeVideo, setActiveVideo] = useState(null);
   const [revealed, setRevealed] = useState(!justSubmitted);
 
   if (loadError) return <p className="p-6 text-center text-sm text-danger">{loadError}</p>;
@@ -104,9 +103,10 @@ export default function ResultPage() {
                           <span className="flex items-center gap-2">
                             <span className="w-6 shrink-0 text-ink-400">#{row.rank}</span>
                             <span>{row.name}</span>
-                            {row.isGuest && (
+                            {row.college && (
                               <span className="flex items-center gap-1 text-[10px] text-ink-400">
                                 <GraduationCap size={11} /> {row.college}
+                                {row.isGuest && " (guest)"}
                               </span>
                             )}
                           </span>
@@ -151,14 +151,28 @@ export default function ResultPage() {
                           মোট {qStats.totalAttempts} জনের মধ্যে — সঠিক {qStats.correctCount}, ভুল {qStats.wrongCount}, স্কিপ {qStats.skippedCount}
                         </p>
                       )}
-                      <div className="mt-2 rounded-lg bg-ink-50 dark:bg-ink-950 p-2.5 text-xs text-ink-600 dark:text-ink-100">
-                        <MathRenderer text={q.explanation} />
+
+                      {/* Two separate explanation options, as designed:
+                          a direct external link to the solve video (opens
+                          real YouTube, not embedded in-app), and the text
+                          explanation as its own labeled block. */}
+                      <div className="mt-2 space-y-2">
+                        {q.videoUrl && (
+                          <a
+                            href={q.videoUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 rounded-lg bg-marigold-500/10 px-2.5 py-2 text-xs font-semibold text-marigold-600 dark:text-marigold-400"
+                          >
+                            <PlayCircle size={14} /> ভিডিও সমাধান দেখো (YouTube-এ খুলবে)
+                            <ExternalLink size={11} className="ml-auto opacity-60" />
+                          </a>
+                        )}
+                        <div className="rounded-lg bg-ink-50 dark:bg-ink-950 p-2.5 text-xs text-ink-600 dark:text-ink-100">
+                          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-ink-400">টেক্সট ব্যাখ্যা</p>
+                          <MathRenderer text={q.explanation} />
+                        </div>
                       </div>
-                      {q.videoUrl && (
-                        <button onClick={() => setActiveVideo(q.videoUrl)} className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-marigold-600 dark:text-marigold-400">
-                          <PlayCircle size={14} /> ভিডিও সমাধান দেখো
-                        </button>
-                      )}
                     </div>
                   );
                 })}
@@ -166,17 +180,6 @@ export default function ResultPage() {
             </>
           )}
         </>
-      )}
-
-      {activeVideo && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onClick={() => setActiveVideo(null)}>
-          <div className="relative w-full max-w-md rounded-xl2 overflow-hidden bg-black" onClick={(e) => e.stopPropagation()}>
-            <button onClick={() => setActiveVideo(null)} className="absolute -top-9 right-0 text-white"><X size={20} /></button>
-            <div className="aspect-video">
-              <iframe src={activeVideo} title="Video explanation" className="h-full w-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
-            </div>
-          </div>
-        </div>
       )}
     </main>
   );

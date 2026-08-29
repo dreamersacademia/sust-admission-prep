@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { Trophy, Download, GraduationCap, Phone } from "lucide-react";
+import { Trophy, Download, GraduationCap } from "lucide-react";
 
 export default function AdminResultsPage() {
   const { id } = useParams();
@@ -37,11 +37,11 @@ export default function AdminResultsPage() {
 
       autoTable(doc, {
         startY: 28,
-        head: [["Rank", "Name", "Phone / College", "Score"]],
+        head: [["Rank", "Name", "College", "Score"]],
         body: data.merit.map((row) => [
           row.rank,
           row.name,
-          row.isGuest ? `${row.college} (guest)` : row.mobile || "—",
+          row.isGuest ? `${row.college || "—"} (guest)` : row.college || "—",
           row.score,
         ]),
         styles: { fontSize: 9 },
@@ -93,7 +93,7 @@ export default function AdminResultsPage() {
                 <tr>
                   <th className="px-3 py-2 font-semibold">Rank</th>
                   <th className="px-3 py-2 font-semibold">Name</th>
-                  <th className="px-3 py-2 font-semibold">Phone / College</th>
+                  <th className="px-3 py-2 font-semibold">College</th>
                   <th className="px-3 py-2 font-semibold">Score</th>
                 </tr>
               </thead>
@@ -103,15 +103,11 @@ export default function AdminResultsPage() {
                     <td className="px-3 py-2">{row.rank}</td>
                     <td className="px-3 py-2">{row.name}</td>
                     <td className="px-3 py-2">
-                      {row.isGuest ? (
-                        <span className="flex items-center gap-1 text-ink-400">
-                          <GraduationCap size={12} /> {row.college} (guest)
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-1">
-                          <Phone size={12} /> {row.mobile || "—"}
-                        </span>
-                      )}
+                      <span className="flex items-center gap-1">
+                        <GraduationCap size={12} className="text-ink-400" />
+                        {row.college || "—"}
+                        {row.isGuest && <span className="text-ink-400">(guest)</span>}
+                      </span>
                     </td>
                     <td className="px-3 py-2 font-semibold">{row.score}</td>
                   </tr>

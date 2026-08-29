@@ -32,10 +32,14 @@ export async function POST(request, { params }) {
   const examId = params.id;
   const { answers: clientAnswers = {}, isPractice = false } = await request.json();
 
-  // Pull the student's display name for the leaderboard — the custom
-  // token itself only carries the uid + role, not profile info.
+  // Pull the student's display name + college for the leaderboard — the
+  // custom token itself only carries the uid + role, not profile info.
+  // College rides along here (not phone — that's deliberately never
+  // stored on an attempt, since attempts feed the merit list/PDF and
+  // phone numbers don't belong there per spec).
   const studentSnap = await adminDb.collection("students").doc(decoded.uid).get();
   const studentName = studentSnap.exists ? studentSnap.data().name : "Student";
+  const studentCollege = studentSnap.exists ? studentSnap.data().college || null : null;
 
   const questionsSnap = await adminDb
     .collection("exams").doc(examId)
@@ -79,55 +83,20 @@ export async function POST(request, { params }) {
       // being hit without /start — a fallback, not the normal path):
       // trust the client's final payload.
       const finalAnswers = pastDeadline ? existing.answers || {} : clientAnswers;
-      let correctCount=0;
-      let wrongCount=0;
-      let score=0;
-          questions.forEach((q) => {
-      const userAns = finalAnswers[q.id];
-      const qMark = q.marks !== undefined ? Number(q.marks) : 1;
-      const negMark = q.negativeMarks !== undefined ? Number(q.negativeMarks) : 0.25;
+      const correctCount = questions.filter((q) => finalAnswers[q.id] === q.correctIndex).length;
 
-      if (userAns !== undefined && userAns !== null) {
-        if (userAns === q.correctIndex) {
-          correctCount++;
-          score += qMark; 
-        } else {
-          wrongCount++;
-          score -= negMark; 
-        }
-      }
-    });
-
-  
-    score = Math.max(0, score);
-
-    const finalized = {
-      studentAuthUid: decoded.uid,
-      studentName,
-      examId,
-      isPractice: false,
-      status: "submitted",
-      answers: finalAnswers,
-      correctCount,
-      wrongCount,
-      score,
-      total: questions.length,
-      submittedAt: pastDeadline ? existing.deadline : Date.now(),
-    };
-
-      // const correctCount = questions.filter((q) => finalAnswers[q.id] === q.correctIndex).length;
-
-      // const finalized = {
-      //   studentAuthUid: decoded.uid,
-      //   studentName,
-      //   examId,
-      //   isPractice: false,
-      //   status: "submitted",
-      //   answers: finalAnswers,
-      //   correctCount,
-      //   total: questions.length,
-      //   submittedAt: pastDeadline ? existing.deadline : Date.now(),
-      // };
+      const finalized = {
+        studentAuthUid: decoded.uid,
+        studentName,
+        studentCollege,
+        examId,
+        isPractice: false,
+        status: "submitted",
+        answers: finalAnswers,
+        correctCount,
+        total: questions.length,
+        submittedAt: pastDeadline ? existing.deadline : Date.now(),
+      };
       tx.set(attemptRef, finalized, { merge: true });
       return finalized;
     });

@@ -77,7 +77,7 @@ export default function LoginPage() {
         </div>
 
         <h1 className="font-display text-xl font-semibold text-center text-ink-900 dark:text-white">
-          SUST Admission Prep
+          Free exam for SUST
         </h1>
         <p className="mt-1 text-center text-sm text-ink-400" lang="bn">
           তোমার নম্বর দিয়ে লগইন করো
@@ -110,7 +110,7 @@ export default function LoginPage() {
             <div className="flex items-center gap-2 rounded-lg border border-ink-100 dark:border-ink-700 bg-ink-50 dark:bg-ink-950 px-3 py-2.5">
               <KeyRound size={16} className="text-ink-400 shrink-0" />
               <input
-                type="password"
+                type="tel"
                 inputMode="numeric"
                 placeholder="••••••"
                 value={studentId}
@@ -138,7 +138,7 @@ export default function LoginPage() {
         </form>
 
         <p className="mt-4 text-center text-xs text-ink-400" lang="bn">
-          আইডি পাওনি? তোমার সেন্টার অ্যাডমিনের সাথে যোগাযোগ করো।
+          আইডি পাওনি? অ্যাডমিনের সাথে যোগাযোগ করো।
         </p>
       </motion.div>
 

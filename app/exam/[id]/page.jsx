@@ -243,7 +243,7 @@ useEffect(() => {
           এই লাইভ পরীক্ষাটি শুরু হবে আরও {formatDuration(msUntil(exam.startAt, nowTick))} পরে।
         </p>
         <button onClick={() => router.push("/dashboard")} className="mt-2 rounded-lg border border-ink-200 dark:border-ink-700 px-4 py-2 text-xs font-semibold">
-          ড্যাশবোর্ডে ফিরে যাও
+          Back to dashboard
         </button>
       </main>
     );
@@ -255,7 +255,7 @@ useEffect(() => {
         <Mascot mood="blocking" size="lg" message="এই লাইভ উইন্ডো শেষ হয়ে গেছে।" />
         <p className="max-w-xs text-xs text-ink-400" lang="bn">তবে চিন্তা নেই — আর্কাইভ থেকে এটা প্র্যাকটিস হিসেবে দিতে পারবে।</p>
         <button onClick={() => router.push("/dashboard")} className="mt-2 rounded-lg bg-ink-900 dark:bg-marigold-500 px-4 py-2 text-xs font-semibold text-white dark:text-ink-950">
-          আর্কাইভে যাও
+        Archive থেকে প্র্যাকটিস করো
         </button>
       </main>
     );
@@ -286,7 +286,7 @@ useEffect(() => {
 
       {isOffline && (
         <div className="flex items-center justify-center gap-1.5 bg-danger/10 py-1.5 text-[11px] font-medium text-danger">
-          <WifiOff size={12} /> অফলাইন — উত্তর ডিভাইসে সেভ হচ্ছে, নেট ফিরলে সিঙ্ক হবে
+          <WifiOff size={12} /> Offline —  answers will be saved locally and synced when connection is restored
         </div>
       )}
 
@@ -297,9 +297,9 @@ useEffect(() => {
           return (
             <div key={q.id} className="rounded-xl2 border border-ink-100 dark:border-ink-800 bg-white dark:bg-ink-900 p-4 shadow-card">
               <div className="mb-1 flex items-center justify-between">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-marigold-600 dark:text-marigold-400">প্রশ্ন {idx + 1} · {q.subject}</p>
-                {isLockedQ && <span className="flex items-center gap-1 text-[10px] font-medium text-ink-400"><Lock size={10} /> লকড</span>}
-                {isPendingQ && <span className="text-[10px] font-medium text-marigold-600 dark:text-marigold-400">লক হচ্ছে...</span>}
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-marigold-600 dark:text-marigold-400">Question {idx + 1} · {q.subject}</p>
+                {isLockedQ && <span className="flex items-center gap-1 text-[10px] font-medium text-ink-400"><Lock size={10} /> Locked</span>}
+                {isPendingQ && <span className="text-[10px] font-medium text-marigold-600 dark:text-marigold-400">Locked...</span>}
               </div>
               <MathRenderer text={q.text} className="text-sm text-ink-900 dark:text-white" />
               <div className="mt-3 space-y-2">
@@ -338,7 +338,7 @@ useEffect(() => {
 
       <div className="fixed bottom-0 left-0 right-0 border-t border-ink-100 dark:border-ink-800 bg-white dark:bg-ink-900 px-4 py-3">
         <button onClick={() => setShowSubmitConfirm(true)} className="w-full rounded-lg bg-ink-900 dark:bg-marigold-500 py-3 text-sm font-semibold text-white dark:text-ink-950">
-          পরীক্ষা জমা দাও
+          Submit Exam
         </button>
       </div>
 
@@ -376,7 +376,7 @@ useEffect(() => {
           <div className="mt-4 flex w-full gap-2">
             <button onClick={() => setShowSubmitConfirm(false)} className="flex-1 rounded-lg border border-ink-200 dark:border-ink-700 py-2 text-sm font-semibold">আরেকটু দেখি</button>
             <button onClick={submitExam} disabled={submitting} className="flex-1 rounded-lg bg-ink-900 dark:bg-marigold-500 py-2 text-sm font-semibold text-white dark:text-ink-950 disabled:opacity-60">
-              {submitting ? "জমা হচ্ছে..." : "জমা দাও"}
+              {submitting ? "Submitting..." : "Submit"}
             </button>
           </div>
         </div>
@@ -387,9 +387,9 @@ useEffect(() => {
 
 function SaveIndicator({ state }) {
   const map = {
-    saved: { label: "সেভ হয়েছে", color: "text-success" },
-    saving: { label: "সেভ হচ্ছে...", color: "text-marigold-600" },
-    offline: { label: "অফলাইন", color: "text-danger" },
+    saved: { label: "Saved", color: "text-success" },
+    saving: { label: "Saving...", color: "text-marigold-600" },
+    offline: { label: "Offline", color: "text-danger" },
   };
   const s = map[state] || map.saved;
   return <span className={cn("text-[10px] font-medium", s.color)}>{s.label}</span>;

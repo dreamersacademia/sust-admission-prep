@@ -12,10 +12,10 @@ import { examStatus, msUntil, formatDuration } from "@/lib/timeWindow";
 import { cn } from "@/lib/utils";
 
 const TABS = [
-  { key: "live", label: "লাইভ পরীক্ষা", icon: Radio },
-  { key: "archive", label: "আর্কাইভ", icon: Archive },
-  { key: "upcoming", label: "আসন্ন", icon: CalendarClock },
-  { key: "practice", label: "প্র্যাকটিস", icon: Dumbbell },
+  { key: "live", label: "Live", icon: Radio },
+  { key: "archive", label: "Archive", icon: Archive },
+  { key: "upcoming", label: "Upcoming", icon: CalendarClock },
+  { key: "practice", label: "Practice", icon: Dumbbell },
 ];
 
 // Classifies an exam into the tab it belongs in RIGHT NOW — live/upcoming
@@ -201,17 +201,17 @@ function ExamCard({ exam, nowMs }) {
 
       {isLiveActive && (
         <Link href={`/exam/${exam.id}`} className="mt-3 block rounded-lg bg-ink-900 dark:bg-marigold-500 py-2 text-center text-xs font-semibold text-white dark:text-ink-950">
-          পরীক্ষা দিন
+          Take Exam
         </Link>
       )}
 
       {isArchivedAttempted && (
         <div className="mt-3 space-y-2">
           <Link href={`/result/${exam.id}`} className="block rounded-lg bg-ink-900 dark:bg-marigold-500 py-2 text-center text-xs font-semibold text-white dark:text-ink-950">
-            ফলাফল {exam.meritRank ? `· র‍্যাংক #${exam.meritRank}` : ""}
+            Result {exam.meritRank ? `· Rank #${exam.meritRank}` : ""}
           </Link>
           <Link href={`/exam/${exam.id}?mode=practice`} className="flex items-center justify-center gap-1.5 rounded-lg border border-ink-200 dark:border-ink-700 py-2 text-center text-xs font-semibold text-ink-600 dark:text-ink-100">
-            <RotateCcw size={13} /> পুনরায় প্র্যাকটিস করো
+            <RotateCcw size={13} /> Retake exam (practice)
           </Link>
         </div>
       )}

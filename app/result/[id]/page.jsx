@@ -47,7 +47,7 @@ export default function ResultPage() {
   if (!result) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center gap-3 bg-ink-50 dark:bg-ink-950 px-6 text-center">
-        <Mascot mood="idle" message="এখনো এই পরীক্ষাটি দাওনি।" ctaLabel="ড্যাশবোর্ডে যাও" onCta={() => router.push("/dashboard")} />
+        <Mascot mood="idle" message="এখনো এই পরীক্ষাটি দাওনি।" ctaLabel="Back to dashboard" onCta={() => router.push("/dashboard")} />
       </main>
     );
   }
@@ -76,15 +76,15 @@ const {
       ) : (
         <>
           <section className="px-4 py-6 text-center">
-            <Mascot mood={mood} size="lg" ctaLabel="ড্যাশবোর্ডে যাও" onCta={() => router.push("/dashboard")} />
+            <Mascot mood={mood} size="lg" ctaLabel="Back to dashboard" onCta={() => router.push("/dashboard")} />
             <p className="mt-4 font-display text-3xl font-bold text-ink-900 dark:text-white">
               {formattedScore}<span className="text-lg text-ink-400">/{total}</span>
             </p>
-            <p className="text-xs text-ink-400">তোমার স্কোর — {scorePct}%</p>
+            <p className="text-xs text-ink-400">Your score — {scorePct}%</p>
             {(wrongCount !== null && wrongCount !== undefined) && (
               <p className="mt-1 text-[11px] text-ink-400" lang="bn">
-                সঠিক {correctCount} · ভুল {wrongCount} · স্কিপ {skippedCount}
-                {negativeMarking > 0 && ` · নেগেটিভ মার্কিং: -${negativeMarking}/ভুল`}
+                Correct {correctCount} · Wrong {wrongCount} · Skipped {skippedCount}
+                {negativeMarking > 0 && ` · Negative marking: -${negativeMarking}/Wrong`}
               </p>
             )}
           </section>
@@ -100,10 +100,10 @@ const {
               {merit.length > 0 && (
                 <section className="mx-4 mb-4 rounded-xl2 border border-ink-100 dark:border-ink-800 bg-white dark:bg-ink-900 p-4 shadow-card">
                   <h2 className="mb-2 flex items-center gap-1.5 text-sm font-semibold">
-                    <Trophy size={15} className="text-marigold-500" /> মেরিট লিস্ট
+                    <Trophy size={15} className="text-marigold-500" /> Merit list
                   </h2>
                   <p className="mb-3 text-[10px] text-ink-400" lang="bn">
-                    রেজিস্টার্ড শিক্ষার্থী ও পাবলিক লিংক থেকে অংশগ্রহণকারী — সবাই একসাথে র‍্যাংক করা হয়েছে।
+                    Merit list for this exam — top {merit.length} scorers, including guest participants.
                   </p>
                   <div className="space-y-1.5">
                     {merit.map((row) => {

@@ -135,7 +135,7 @@ export default function PublicExamPage() {
           className="w-full max-w-xs rounded-lg border border-ink-100 dark:border-ink-700 bg-white dark:bg-ink-900 px-3 py-2.5 text-sm outline-none" />
         <button disabled={!guestName.trim() || !guestCollege.trim() || !questions} onClick={() => setStarted(true)}
           className="w-full max-w-xs rounded-lg bg-ink-900 dark:bg-marigold-500 py-2.5 text-sm font-semibold text-white dark:text-ink-950 disabled:opacity-50">
-          {questions ? "পরীক্ষা শুরু করো" : "লোড হচ্ছে..."}
+          {questions ? "Start Exam" : "Loading..."}
         </button>
       </main>
     );
@@ -159,7 +159,7 @@ export default function PublicExamPage() {
             <div key={q.id} className="rounded-xl2 border border-ink-100 dark:border-ink-800 bg-white dark:bg-ink-900 p-4 shadow-card">
               <div className="mb-1 flex items-center justify-between">
                 <p className="text-[10px] font-semibold uppercase tracking-wide text-marigold-600 dark:text-marigold-400">প্রশ্ন {idx + 1}</p>
-                {isLockedQ && <span className="flex items-center gap-1 text-[10px] font-medium text-ink-400"><LockKeyhole size={10} /> লকড</span>}
+                {isLockedQ && <span className="flex items-center gap-1 text-[10px] font-medium text-ink-400"><LockKeyhole size={10} /> Locked</span>}
                 {isPendingQ && <span className="text-[10px] font-medium text-marigold-600 dark:text-marigold-400">লক হচ্ছে...</span>}
               </div>
               <MathRenderer text={q.text} className="text-sm" />
@@ -194,7 +194,7 @@ export default function PublicExamPage() {
 
       <div className="fixed bottom-0 left-0 right-0 border-t border-ink-100 dark:border-ink-800 bg-white dark:bg-ink-900 px-4 py-3">
         <button onClick={handleSubmit} disabled={submitting} className="w-full rounded-lg bg-ink-900 dark:bg-marigold-500 py-3 text-sm font-semibold text-white dark:text-ink-950 disabled:opacity-60">
-          {submitting ? "জমা হচ্ছে..." : "জমা দাও"}
+          {submitting ? "Submitting..." : "Submit"}
         </button>
       </div>
     </main>

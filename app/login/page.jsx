@@ -80,13 +80,13 @@ export default function LoginPage() {
           Free exam for SUST
         </h1>
         <p className="mt-1 text-center text-sm text-ink-400" lang="bn">
-          তোমার নম্বর দিয়ে লগইন করো
+          তোমার student ID দিয়ে লগইন করো
         </p>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <label className="block">
             <span className="mb-1 block text-xs font-medium text-ink-600 dark:text-ink-100">
-              মোবাইল নম্বর
+              Mobile Number(11 digits)
             </span>
             <div className="flex items-center gap-2 rounded-lg border border-ink-100 dark:border-ink-700 bg-ink-50 dark:bg-ink-950 px-3 py-2.5">
               <Phone size={16} className="text-ink-400 shrink-0" />
@@ -105,7 +105,7 @@ export default function LoginPage() {
 
           <label className="block">
             <span className="mb-1 block text-xs font-medium text-ink-600 dark:text-ink-100">
-              Student ID (৬ ডিজিট)
+              Student ID (6 digits)
             </span>
             <div className="flex items-center gap-2 rounded-lg border border-ink-100 dark:border-ink-700 bg-ink-50 dark:bg-ink-950 px-3 py-2.5">
               <KeyRound size={16} className="text-ink-400 shrink-0" />
@@ -133,7 +133,7 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full rounded-lg bg-ink-800 dark:bg-marigold-500 py-2.5 text-sm font-semibold text-white dark:text-ink-950 transition active:scale-[0.98] disabled:opacity-60"
           >
-            {loading ? "যাচাই করা হচ্ছে..." : "লগইন করো"}
+            {loading ? "Verifying..." : "Login"}
           </button>
         </form>
 

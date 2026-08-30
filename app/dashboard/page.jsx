@@ -222,11 +222,11 @@ function ExamCard({ exam, nowMs }) {
             তুমি এই পরীক্ষাটি মিস করেছো — প্র্যাকটিস হিসেবে দিতে পারবে (মেরিট লিস্টে যুক্ত হবে না)।
           </p>
           <Link href={`/exam/${exam.id}?mode=practice`} className="block rounded-lg bg-ink-900 dark:bg-marigold-500 py-2 text-center text-xs font-semibold text-white dark:text-ink-950">
-            {practiceResult ? "আবার প্র্যাকটিস দিন" : "প্র্যাকটিস হিসেবে পরীক্ষা দিন"}
+            {practiceResult ? "Retake(practice)" : "Take exam (practice)"}
           </Link>
           {practiceResult && (
             <Link href={`/result/${exam.id}?mode=practice`} className="block rounded-lg border border-ink-200 dark:border-ink-700 py-2 text-center text-xs font-semibold text-ink-600 dark:text-ink-100">
-              ফলাফল
+              Result
             </Link>
           )}
         </div>
@@ -235,11 +235,11 @@ function ExamCard({ exam, nowMs }) {
       {isPracticeType && (
         <div className="mt-3 space-y-2">
           <Link href={`/exam/${exam.id}?mode=practice`} className="block rounded-lg bg-ink-900 dark:bg-marigold-500 py-2 text-center text-xs font-semibold text-white dark:text-ink-950">
-            {practiceResult ? "আবার পরীক্ষা দিন" : "পরীক্ষা দিন"}
+            {practiceResult ? "Retake(practice)" : "Take exam (practice)"}
           </Link>
           {practiceResult && (
             <Link href={`/result/${exam.id}?mode=practice`} className="block rounded-lg border border-ink-200 dark:border-ink-700 py-2 text-center text-xs font-semibold text-ink-600 dark:text-ink-100">
-              ফলাফল
+              Result
             </Link>
           )}
         </div>

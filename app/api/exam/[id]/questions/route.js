@@ -12,6 +12,7 @@ import { adminDb, verifyRequest } from "@/lib/server/firebaseAdmin";
  */
 export async function GET(request, { params }) {
   const decoded = await verifyRequest(request); // may be null for a guest — checked below
+  const isPracticeMode = new URL(request.url).searchParams.get("mode") === "practice";
 
   const examId = params.id;
   const examSnap = await adminDb.collection("exams").doc(examId).get();
@@ -28,23 +29,27 @@ export async function GET(request, { params }) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Live-window gate lives server-side too, not just in the UI — a direct
+// Live-window gate lives server-side too, not just in the UI — a direct
   // API hit before startAt or after endAt (without an in-progress attempt)
-  // gets refused here regardless of what the client shows.
+  // gets refused here regardless of what the client shows. Skipped
+  // entirely in practice mode — a practice retake of an exam whose
+  // window already ended is exactly the normal case, not an error.
   const now = Date.now();
   const isWindowed = exam.startAt && exam.endAt;
-  if (isWindowed) {
+  if (isWindowed && !isPracticeMode) {
     const start = exam.startAt.toMillis();
-    const end = exam.endAt.toMillis();
     if (now < start) {
       return NextResponse.json({ error: "Exam has not started yet" }, { status: 403 });
     }
   }
 
-  // One-time-attempt gate: only meaningful for a signed-in student —
-  // guests have their own (separately flagged as approximate) enforcement
-  // in guest-submit/route.js.
-  if (isWindowed && decoded) {
+  // One-time-attempt gate: only for an OFFICIAL attempt. This was the
+  // actual bug — it used to fire regardless of mode, so retaking an
+  // already-completed exam via "পুনরায় প্র্যাকটিস করো" (mode=practice)
+  // hit the exact same "Already submitted" rejection meant for someone
+  // trying to re-enter their official, locked attempt. Practice mode is
+  // unlimited by design and must never be blocked by this check.
+  if (isWindowed && decoded && !isPracticeMode) {
     const attemptId = `${decoded.uid}_${examId}`;
     const attemptSnap = await adminDb.collection("attempts").doc(attemptId).get();
     if (attemptSnap.exists && attemptSnap.data().status === "submitted") {

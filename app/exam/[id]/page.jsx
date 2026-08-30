@@ -25,7 +25,7 @@ export default function ExamEnginePage() {
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([fetchExamById(id), fetchQuestionsForExam(id)])
+    Promise.all([fetchExamById(id), fetchQuestionsForExam(id, { isPractice: isPracticeMode })])
       .then(([examData, questionsData]) => {
         if (cancelled) return;
         setExam(examData);

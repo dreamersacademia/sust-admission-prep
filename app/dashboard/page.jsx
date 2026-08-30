@@ -3,10 +3,12 @@
 import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Radio, Archive, CalendarClock, Dumbbell, Clock, Lock, Hourglass, RotateCcw } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Radio, Archive, CalendarClock, Dumbbell, Clock, Lock, Hourglass, RotateCcw, LogOut } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import Mascot from "@/components/Mascot";
 import { fetchAllExams, fetchCurrentStudent, checkAttempted } from "@/lib/dataLayer";
+import { firebaseReady, getClientAuth, signOut } from "@/lib/firebaseClient";
 import { getPracticeResult } from "@/lib/attemptStore";
 import { examStatus, msUntil, formatDuration } from "@/lib/timeWindow";
 import { cn } from "@/lib/utils";
@@ -32,6 +34,7 @@ function classify(exam, nowMs, attempted) {
 }
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [student, setStudent] = useState(null); // null = loading
   const [allExams, setAllExams] = useState(null); // null = loading
   const [loadError, setLoadError] = useState("");
@@ -87,11 +90,20 @@ export default function DashboardPage() {
   return (
     <main className="min-h-screen bg-ink-50 dark:bg-ink-950 pb-16">
       <header className="sticky top-0 z-10 flex items-center justify-between border-b border-ink-100 dark:border-ink-800 bg-ink-50/90 dark:bg-ink-950/90 backdrop-blur px-4 py-3">
-        <div>
+       <div>
           <p className="font-display text-sm font-semibold text-ink-900 dark:text-white">{student.name}</p>
           <p className="text-xs text-ink-400">ID: {student.id}</p>
         </div>
-        <ThemeToggle />
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <button
+            onClick={handleLogout}
+            aria-label="Logout"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-ink-100 dark:border-ink-800 bg-white dark:bg-ink-900 text-ink-500 shadow-card"
+          >
+            <LogOut size={16} />
+          </button>
+        </div>
       </header>
 
       <section className="px-4 pt-4">

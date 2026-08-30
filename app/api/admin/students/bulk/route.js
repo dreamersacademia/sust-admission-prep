@@ -5,11 +5,16 @@ import { verifyAdminSessionToken, SESSION_COOKIE } from "@/lib/server/adminSessi
 
 /**
  * POST /api/admin/students/bulk
- * Body: { rows: [{ phone, name, group, college }], resetIds?: boolean }
+* Body: { rows: [{ phone, name, group, college, track }], resetIds?: boolean }
  *   `group` is expected to already be one of "A_ONLY" | "B_ONLY" | "BOTH"
  *   `college` is free text, shown on the merit list/PDF alongside guest
  *   entries' colleges (see lib/server/examAnalytics.js) — no phone number
  *   is ever put on the merit list or PDF, per spec.
+ *   `track` only matters for B-Unit students — "science" or anything else
+ *   (e.g. "humanities", "commerce") both work as the OTHER routine, since
+ *   the dashboard filter (app/dashboard/page.jsx) only checks "is this
+ *   science or not," not the exact label. Leave blank for A-Unit-only
+ *   students, since A-Unit has no science/non-science split.
  *   (matches the CSV format described in the admin dashboard UI).
  *
  * Gated by the same admin session cookie middleware.js checks — this is
@@ -47,9 +52,9 @@ export async function POST(request) {
   const batch = adminDb.batch();
 
   for (const row of rows) {
-    const { phone, name, group, college = "" } = row;
+    const { phone, name, group, college = "",track="" } = row;
     if (!/^01[3-9]\d{8}$/.test(phone || "")) {
-      results.push({ phone, name, college: row.college, status: "skipped", reason: "Invalid phone" });
+      results.push({ phone, name, college: row.college, track: row.track, status: "skipped", reason: "Invalid phone" });
       continue;
     }
 
@@ -60,7 +65,7 @@ export async function POST(request) {
       .get();
 
     if (!existingSnap.empty && !resetIds) {
-      results.push({ phone, name, college, status: "exists", reason: "Already registered — check 'reset ID' to reissue" });
+      results.push({ phone, name, college, track, status: "exists", reason: "Already registered — check 'reset ID' to reissue" });
       continue;
     }
 
@@ -72,25 +77,25 @@ export async function POST(request) {
       // Reissue: update the SAME doc (keeps their attempt history, name
       // edits, etc. intact) rather than creating a new student identity.
       const docRef = existingSnap.docs[0].ref;
-      batch.set(docRef, { name, unitPermission, college, studentIdHash, updatedAt: new Date() }, { merge: true });
-      results.push({ phone, name, college, status: "id-reset", generatedId });
+      batch.set(docRef, { name, unitPermission, college, track: track || null, studentIdHash, updatedAt: new Date() }, { merge: true });
+      results.push({ phone, name, college, track, status: "id-reset", generatedId });
       continue;
     }
 
     const docRef = adminDb.collection("students").doc(); // auto-id
-    batch.set(docRef, {
+  batch.set(docRef, {
       name,
       mobile: phone,
       unitPermission,
       college: college || null,
-      track: null,
+      track: track || null,
       studentIdHash,
       authUid: null,
       createdAt: new Date(),
       createdBy: session.uid || session.email,
     });
 
-    results.push({ phone, name, college, status: "created", generatedId });
+    results.push({ phone, name, college, track, status: "created", generatedId });
   }
 
   await batch.commit();

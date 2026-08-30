@@ -69,9 +69,20 @@ export default function DashboardPage() {
     return () => clearInterval(t);
   }, []);
 
-  const exams = (allExams || []).filter((e) => {
+const exams = (allExams || []).filter((e) => {
     if (e.unit && e.unit !== unit) return false;
-    if (unit === "B" && student?.track !== "science" && e.track === "science") return false;
+    // B-Unit: two separate routines, not one-directional hiding. Science
+    // students see science exams; humanities AND commerce students share
+    // the other routine — any exam whose track isn't literally "science"
+    // counts as that shared routine, so "humanities" and "commerce" tags
+    // don't need to match each other exactly, just both be non-science.
+    // Exams with no track set are shared across both groups (untagged =
+    // general B-Unit content, e.g. a subject common to every track).
+    if (unit === "B" && e.track) {
+      const examIsScience = e.track === "science";
+      const studentIsScience = student?.track === "science";
+      if (examIsScience !== studentIsScience) return false;
+    }
     const attempted = checkAttempted(e.id, e);
     return classify(e, nowMs, attempted) === activeTab;
   });

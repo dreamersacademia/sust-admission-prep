@@ -188,7 +188,7 @@ export default function AdminDashboardPage() {
     if (lines.length === 0) return [];
 
     const looksLikeDataRow = /^01[3-9]\d{8}/.test(lines[0].split(",")[0].trim());
-    const cols = ["phone", "name", "group", "college"];
+    const cols = ["phone", "name", "group", "college", "track"];
     const rows = looksLikeDataRow ? lines : lines.slice(1);
 
     return rows.map((row) => {
@@ -461,12 +461,12 @@ export default function AdminDashboardPage() {
         <div className="rounded-xl2 border border-ink-100 dark:border-ink-800 bg-white dark:bg-ink-900 p-4 shadow-card">
           <h2 className="mb-1 text-sm font-semibold">Bulk student upload</h2>
           <p className="mb-3 text-[11px] text-ink-400">
-            CSV columns: <code className="font-mono">phone,name,group,college</code>
+            CSV columns: <code className="font-mono">phone,name,group,college,track</code>
           </p>
           <textarea
             value={csvText}
             onChange={(e) => setCsvText(e.target.value)}
-            placeholder={"phone,name,group,college\n01812345678,Tahmid Rahman,A_ONLY,Notre Dame College"}
+            placeholder={"phone,name,group,college,track\n01812345678,Tahmid Rahman,A_ONLY,Notre Dame College,science"}
             rows={4}
             className="w-full rounded-lg border border-ink-100 dark:border-ink-700 bg-ink-50 dark:bg-ink-950 px-3 py-2 font-mono text-xs outline-none"
           />
@@ -483,7 +483,7 @@ export default function AdminDashboardPage() {
           {previewChecked && csvPreview.length === 0 && (
             <p className="mt-2 text-xs text-danger">
               No valid rows found — check each line has a phone number
-              starting with 01 (e.g. <code className="font-mono">01812345678,Name,A_ONLY,College Name</code>).
+              starting with 01 (e.g. <code className="font-mono">01812345678,Name,A_ONLY,College Name,science</code>). `track` only matters for B-Unit students (science / humanities / commerce) — leave it blank for A-Unit-only rows.
             </p>
           )}
 

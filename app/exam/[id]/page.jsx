@@ -361,8 +361,8 @@ useEffect(() => {
               : "পরীক্ষা এখনও চলছে। বের হয়ে গেলে অসম্পূর্ণ উত্তর নিয়েই সময় শেষে জমা হয়ে যাবে — এটা একবারই জমা দেওয়া যাবে, পরে আর ঢোকা যাবে না।"}
           </p>
           <div className="mt-4 flex w-full gap-2">
-            <button onClick={() => setShowExitModal(false)} className="flex-1 rounded-lg border border-ink-200 dark:border-ink-700 py-2 text-sm font-semibold">থাকো</button>
-            <button onClick={() => router.push("/dashboard")} className="flex-1 rounded-lg bg-danger py-2 text-sm font-semibold text-white">বের হও</button>
+            <button onClick={() => setShowExitModal(false)} className="flex-1 rounded-lg border border-ink-200 dark:border-ink-700 py-2 text-sm font-semibold">Continue</button>
+            <button onClick={() => router.push("/dashboard")} className="flex-1 rounded-lg bg-danger py-2 text-sm font-semibold text-white">Leave</button>
           </div>
         </div>
       </Modal>
@@ -374,7 +374,7 @@ useEffect(() => {
             {answeredCount}/{questions.length} প্রশ্নের উত্তর দিয়েছো। {isPracticeMode ? "প্র্যাকটিস রেজাল্ট সাথে সাথে দেখতে পাবে।" : "জমা দেওয়ার পর আর কখনো এই পরীক্ষার পেজে ফেরা যাবে না।"}
           </p>
           <div className="mt-4 flex w-full gap-2">
-            <button onClick={() => setShowSubmitConfirm(false)} className="flex-1 rounded-lg border border-ink-200 dark:border-ink-700 py-2 text-sm font-semibold">আরেকটু দেখি</button>
+            <button onClick={() => setShowSubmitConfirm(false)} className="flex-1 rounded-lg border border-ink-200 dark:border-ink-700 py-2 text-sm font-semibold">Review</button>
             <button onClick={submitExam} disabled={submitting} className="flex-1 rounded-lg bg-ink-900 dark:bg-marigold-500 py-2 text-sm font-semibold text-white dark:text-ink-950 disabled:opacity-60">
               {submitting ? "Submitting..." : "Submit"}
             </button>

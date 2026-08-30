@@ -86,7 +86,13 @@ export default function DashboardPage() {
       </div>
     );
   }
-
+async function handleLogout() {
+    if (firebaseReady) {
+      const auth = getClientAuth();
+      await signOut(auth);
+    }
+    router.push("/login");
+  }
   return (
     <main className="min-h-screen bg-ink-50 dark:bg-ink-950 pb-16">
       <header className="sticky top-0 z-10 flex items-center justify-between border-b border-ink-100 dark:border-ink-800 bg-ink-50/90 dark:bg-ink-950/90 backdrop-blur px-4 py-3">

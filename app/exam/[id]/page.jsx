@@ -90,7 +90,7 @@ useEffect(() => {
       if (err.message === "Already submitted") {
         router.replace(`/result/${id}`);
       } else {
-        setStartError(err.message || "পরীক্ষা শুরু করতে সমস্যা হয়েছে।");
+        setStartError(err.message || "Error starting exam. Please try again.");
       }
     });
 }, [exam, status, isLiveType, id, router]);
@@ -215,7 +215,7 @@ useEffect(() => {
       })
       .catch((err) => {
         setSubmitting(false);
-        alert(err.message || "জমা দিতে সমস্যা হয়েছে, আবার চেষ্টা করো।");
+        alert(err.message || "Error submitting exam. Please try again.");
       });
   }, [answers, id, isPracticeMode, exam, router]);
 
@@ -347,7 +347,7 @@ useEffect(() => {
           <AlertTriangle className="mb-2 text-danger" size={28} />
           <Mascot mood="blocking" />
           <p className="mt-3 text-xs text-ink-400" lang="bn">ট্যাব পরিবর্তন রেকর্ড হয়েছে ({tabSwitchCount}বার)। বারবার হলে অ্যাডমিন রিভিউ করবে।</p>
-          <button onClick={() => setShowTabSwitchAlert(false)} className="mt-4 w-full rounded-lg bg-ink-900 dark:bg-marigold-500 py-2 text-sm font-semibold text-white dark:text-ink-950">পরীক্ষায় ফিরে যাও</button>
+          <button onClick={() => setShowTabSwitchAlert(false)} className="mt-4 w-full rounded-lg bg-ink-900 dark:bg-marigold-500 py-2 text-sm font-semibold text-white dark:text-ink-950">Continue Exam</button>
         </div>
       </Modal>
 

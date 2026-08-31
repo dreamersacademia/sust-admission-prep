@@ -1,0 +1,240 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
+import { AlertCircle, CheckCircle2, Copy } from "lucide-react";
+import Mascot from "@/components/Mascot";
+import ThemeToggle from "@/components/ThemeToggle";
+import Footer from "@/components/Footer";
+import { cn } from "@/lib/utils";
+
+export default function RegisterPage() {
+  const router = useRouter();
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [college, setCollege] = useState("");
+  const [unitPermission, setUnitPermission] = useState("");
+  const [track, setTrack] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [generatedId, setGeneratedId] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  const needsTrack = unitPermission === "B_ONLY" || unitPermission === "BOTH";
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    setError("");
+
+    if (!name.trim() || !college.trim()) {
+      setError("নাম ও কলেজের নাম দাও।");
+      return;
+    }
+    if (!/^01[3-9]\d{8}$/.test(phone)) {
+      setError("সঠিক ১১ ডিজিটের মোবাইল নম্বর দাও।");
+      return;
+    }
+    if (!unitPermission) {
+      setError("ইউনিট পারমিশন বাছাই করো।");
+      return;
+    }
+    if (needsTrack && !track) {
+      setError("B-Unit এর জন্য তোমার গ্রুপ বাছাই করো।");
+      return;
+    }
+
+    setLoading(true);
+    fetch("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, phone, college, unitPermission, track: needsTrack ? track : null }),
+    })
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "রেজিস্ট্রেশন ব্যর্থ হয়েছে।");
+        setGeneratedId(data.generatedId);
+      })
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }
+
+  function copyId() {
+    navigator.clipboard?.writeText(generatedId);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  // Success screen — the ID is shown here ONCE, same rule as the admin
+  // bulk-uploader. There's no "look it up again" page anywhere.
+  if (generatedId) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center bg-ink-50 dark:bg-ink-950 px-4 py-8 text-center">
+        <Mascot mood="celebrate" size="lg" />
+        <h1 className="mt-4 font-display text-lg font-semibold text-ink-900 dark:text-white">
+          রেজিস্ট্রেশন সম্পন্ন হয়েছে!
+        </h1>
+        <p className="mt-1 max-w-xs text-xs text-ink-400" lang="bn">
+          এটাই তোমার Student ID — এখনই সংরক্ষণ করো (স্ক্রিনশট নাও বা লিখে রাখো)।
+          এটা আর কখনো দেখানো হবে না — হারিয়ে গেলে অ্যাডমিনের কাছ থেকে নতুন
+          আইডি নিতে হবে।
+        </p>
+
+        <div className="mt-5 flex items-center gap-2 rounded-xl2 border-2 border-marigold-500 bg-white dark:bg-ink-900 px-6 py-4 shadow-card">
+          <span className="font-mono text-3xl font-bold tracking-widest text-ink-900 dark:text-white">
+            {generatedId}
+          </span>
+          <button
+            onClick={copyId}
+            aria-label="কপি করো"
+            className="ml-2 flex h-9 w-9 items-center justify-center rounded-full border border-ink-100 dark:border-ink-700 text-ink-400"
+          >
+            {copied ? <CheckCircle2 size={16} className="text-success" /> : <Copy size={16} />}
+          </button>
+        </div>
+
+        <button
+          onClick={() => router.push("/login")}
+          className="mt-6 rounded-lg bg-ink-900 dark:bg-marigold-500 px-6 py-2.5 text-sm font-semibold text-white dark:text-ink-950"
+        >
+          এখন লগইন করো
+        </button>
+      </main>
+    );
+  }
+
+  return (
+    <main className="flex min-h-screen flex-col items-center justify-center bg-ink-50 dark:bg-ink-950 px-4 py-8">
+      <div className="absolute right-4 top-4">
+        <ThemeToggle />
+      </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="w-full max-w-sm rounded-xl2 bg-white dark:bg-ink-900 p-6 shadow-card border border-ink-100 dark:border-ink-800"
+      >
+        <div className="mb-4 flex justify-center">
+          <Mascot mood="idle" size="lg" />
+        </div>
+        <h1 className="font-display text-xl font-semibold text-center text-ink-900 dark:text-white">
+          নতুন রেজিস্ট্রেশন
+        </h1>
+        <p className="mt-1 text-center text-sm text-ink-400" lang="bn">
+          তথ্য দাও, সাথে সাথে তোমার Student ID পেয়ে যাবে
+        </p>
+
+        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+          <label className="block">
+            <span className="mb-1 block text-xs font-medium text-ink-600 dark:text-ink-100">নাম</span>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full rounded-lg border border-ink-100 dark:border-ink-700 bg-ink-50 dark:bg-ink-950 px-3 py-2.5 text-sm outline-none"
+              required
+            />
+          </label>
+
+          <label className="block">
+            <span className="mb-1 block text-xs font-medium text-ink-600 dark:text-ink-100">মোবাইল নম্বর</span>
+            <input
+              type="tel"
+              inputMode="numeric"
+              placeholder="01XXXXXXXXX"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value.trim())}
+              maxLength={11}
+              className="w-full rounded-lg border border-ink-100 dark:border-ink-700 bg-ink-50 dark:bg-ink-950 px-3 py-2.5 text-sm outline-none"
+              required
+            />
+          </label>
+
+          <label className="block">
+            <span className="mb-1 block text-xs font-medium text-ink-600 dark:text-ink-100">কলেজের নাম</span>
+            <input
+              value={college}
+              onChange={(e) => setCollege(e.target.value)}
+              className="w-full rounded-lg border border-ink-100 dark:border-ink-700 bg-ink-50 dark:bg-ink-950 px-3 py-2.5 text-sm outline-none"
+              required
+            />
+          </label>
+
+          <div>
+            <span className="mb-1 block text-xs font-medium text-ink-600 dark:text-ink-100">ইউনিট পারমিশন</span>
+            <div className="flex gap-2">
+              {[
+                { key: "A_ONLY", label: "A-Unit" },
+                { key: "B_ONLY", label: "B-Unit" },
+                { key: "BOTH", label: "উভয়" },
+              ].map(({ key, label }) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setUnitPermission(key)}
+                  className={cn(
+                    "flex-1 rounded-lg border py-2 text-xs font-semibold",
+                    unitPermission === key
+                      ? "border-marigold-500 bg-ink-900 text-white dark:bg-marigold-500 dark:text-ink-950"
+                      : "border-ink-100 dark:border-ink-700 text-ink-600 dark:text-ink-100"
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {needsTrack && (
+            <div>
+              <span className="mb-1 block text-xs font-medium text-ink-600 dark:text-ink-100">
+                তোমার গ্রুপ (B-Unit)
+              </span>
+              <div className="flex gap-2">
+                {[
+                  { key: "science", label: "সাইন্স" },
+                  { key: "humanities_commerce", label: "মানবিক + ব্যবসায়" },
+                ].map(({ key, label }) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setTrack(key)}
+                    className={cn(
+                      "flex-1 rounded-lg border py-2 text-xs font-semibold",
+                      track === key
+                        ? "border-marigold-500 bg-ink-900 text-white dark:bg-marigold-500 dark:text-ink-950"
+                        : "border-ink-100 dark:border-ink-700 text-ink-600 dark:text-ink-100"
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {error && (
+            <p className="flex items-center gap-1.5 text-xs text-danger" role="alert">
+              <AlertCircle size={13} /> {error}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full rounded-lg bg-ink-800 dark:bg-marigold-500 py-2.5 text-sm font-semibold text-white dark:text-ink-950 transition active:scale-[0.98] disabled:opacity-60"
+          >
+            {loading ? "generating..." : "Get your Student ID"}
+          </button>
+        </form>
+
+        <p className="mt-4 text-center text-xs text-ink-400" lang="bn">
+          আগে থেকে আইডি আছে?{" "}
+          <a href="/login" className="font-semibold text-marigold-600 dark:text-marigold-400">লগইন করো</a>
+        </p>
+      </motion.div>
+
+      <Footer />
+    </main>
+  );
+}

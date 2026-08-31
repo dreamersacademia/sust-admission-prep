@@ -138,7 +138,8 @@ export default function LoginPage() {
         </form>
 
         <p className="mt-4 text-center text-xs text-ink-400" lang="bn">
-          আইডি পাওনি? অ্যাডমিনের সাথে যোগাযোগ করো।
+          new here? <a href="/login" className="font-semibold text-marigold-600 dark:text-marigold-400">এখানে রেজিস্টার করো</a>।
+          আইডি হারিয়ে গেলে অ্যাডমিনের সাথে যোগাযোগ করো।
         </p>
       </motion.div>
 

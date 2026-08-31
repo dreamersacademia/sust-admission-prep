@@ -115,7 +115,7 @@ function handleGoogleFormLookup(e) {
           </span>
           <button
             onClick={copyId}
-            aria-label="কপি করো"
+            aria-label="copy"
             className="ml-2 flex h-9 w-9 items-center justify-center rounded-full border border-ink-100 dark:border-ink-700 text-ink-400"
           >
             {copied ? <CheckCircle2 size={16} className="text-success" /> : <Copy size={16} />}
@@ -126,7 +126,7 @@ function handleGoogleFormLookup(e) {
           onClick={() => router.push("/login")}
           className="mt-6 rounded-lg bg-ink-900 dark:bg-marigold-500 px-6 py-2.5 text-sm font-semibold text-white dark:text-ink-950"
         >
-          এখন লগইন করো
+          Login Now
         </button>
       </main>
     );
@@ -155,13 +155,14 @@ function handleGoogleFormLookup(e) {
         </p>
         <div className="mt-3 rounded-xl border border-ink-100 bg-ink-50/50 p-3 text-center text-xs text-ink-500 dark:border-ink-800 dark:bg-ink-950/50 dark:text-ink-400" lang="bn">
           <p className="font-medium text-ink-700 dark:text-ink-200">
-            যদি আমাদের প্লাটফর্ম এ একদম নতুন তাহলে এখানে তথ্য দিয়ে ১ সেকেন্ডের মধ্যেই আইডি সংগ্রহ করো। ড্যাশবোর্ড এ লগ ইন করে পরীক্ষা শুরু করো।
+            যারা গুগল ফর্ম এ রেজিস্ট্রেশন করেছেন,⚠️তারা নতুন করে রেজিস্ট্রেশন করার দরকার নেই।⚠️ এখানে সবার নিচে গুগল ফর্ম সেকশনে শুধু ফোন নাম্বার দিয়ে স্টুডেন্ট আইডি সংগ্রহ করুন।
           </p>
           <p className="mt-1.5">
-            অথবা, যদি আগে গুগল ফর্ম পুরন করে থাকো,তাহলে নিচে গুগল ফর্ম সেকশন এ দেখো।
+            যারা নতুন শিক্ষার্থী, অর্থাৎ গুগল ফর্মে রেজিস্ট্রেশন করেননি, তারা এখানে নতুন করে রেজিস্ট্রেশন করতে পারবেন।✅ 
+            নতুন শিক্ষার্থীদের গুগল ফর্ম পুরন করার প্রয়োজন নেই।⚠️ এখানে সরাসরি নাম,কলেজ,মোবাইল নাম্বার,ইউনিট পারমিশন এবং গ্রুপ দিয়ে রেজিস্ট্রেশন করতে পারবেন।✅এবং মুহুর্তের মধ্যেই আইডি পেয়ে যাবেন।আইডি অবশ্যোই স্ক্রিনশোট নিয়ে রাখবেন।⚠️
           </p>
           <p className="mt-1 font-semibold text-marigold-600 dark:text-marigold-400">
-            বি দ্র: আগে গুগল ফরম পুরন না করলে কোন সমস্যা নাই,উপরের রেজিস্ট্রেশন এ তথ্য দিয়েই আইডি সংগ্রহ করে ফেলো।
+           ⚠️ রেজিস্ট্রেশন করার পুর্বে এই অংশটা মনোযোগ দিয়ে পড়ো ! ☠️
           </p>
         </div>
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
@@ -270,7 +271,8 @@ function handleGoogleFormLookup(e) {
         {/* গুগল ফর্ম আইডি রিকভারি সেকশন */}
         <div className="mt-6 border-t border-ink-100 pt-5 dark:border-ink-800">
           <h2 className="text-center font-display text-sm font-semibold text-ink-900 dark:text-white">
-            গুগল ফর্ম পূরণকারীদের আইডি খুঁজুন
+           নিচের অপশনটা শুধুমাত্র গুগল ফর্মে  রেজিস্ট্রেশন করা শিক্ষার্থীদের জন্য ⚠️
+        
           </h2>
           <form onSubmit={handleGoogleFormLookup} className="mt-3 space-y-3">
             <label className="block">

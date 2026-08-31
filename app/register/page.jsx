@@ -20,6 +20,9 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [generatedId, setGeneratedId] = useState("");
   const [copied, setCopied] = useState(false);
+  const [searchPhone, setSearchPhone] = useState("");
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState("");
 
   const needsTrack = unitPermission === "B_ONLY" || unitPermission === "BOTH";
 
@@ -64,7 +67,33 @@ export default function RegisterPage() {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
+function handleGoogleFormLookup(e) {
+    e.preventDefault();
+    setSearchError("");
 
+    if (!/^01[3-9]\d{8}$/.test(searchPhone)) {
+      setSearchError("সঠিক ১১ ডিজিটের মোবাইল নম্বর দাও।");
+      return;
+    }
+
+    setSearchLoading(true);
+    
+    
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz-RDGntWVMPk08Ihgh-W51SoYKXRJmoVhDMFLct8HreKZV3qZOP7gU-gMlMIW2p15kpw/exec";
+
+    fetch(`${APPS_SCRIPT_URL}?phone=${searchPhone}`)
+      .then(async (res) => {
+        const data = await res.json();
+        if (data.success && data.studentId) {
+          setGeneratedId(data.studentId); 
+        } else {
+         
+          throw new Error(data.message || "আইডি পাওয়া যায়নি।"); 
+        }
+      })
+      .catch((err) => setSearchError(err.message))
+      .finally(() => setSearchLoading(false));
+  }
   // Success screen — the ID is shown here ONCE, same rule as the admin
   // bulk-uploader. There's no "look it up again" page anywhere.
   if (generatedId) {
@@ -119,12 +148,22 @@ export default function RegisterPage() {
           <Mascot mood="idle" size="lg" />
         </div>
         <h1 className="font-display text-xl font-semibold text-center text-ink-900 dark:text-white">
-          নতুন রেজিস্ট্রেশন
+          New Registration
         </h1>
         <p className="mt-1 text-center text-sm text-ink-400" lang="bn">
-          তথ্য দাও, সাথে সাথে তোমার Student ID পেয়ে যাবে
+          Fill in your details to get a Student ID. This ID is shown only once, so make sure to save it.
         </p>
-
+        <div className="mt-3 rounded-xl border border-ink-100 bg-ink-50/50 p-3 text-center text-xs text-ink-500 dark:border-ink-800 dark:bg-ink-950/50 dark:text-ink-400" lang="bn">
+          <p className="font-medium text-ink-700 dark:text-ink-200">
+            যদি আমাদের প্লাটফর্ম এ একদম নতুন তাহলে এখানে তথ্য দিয়ে ১ সেকেন্ডের মধ্যেই আইডি সংগ্রহ করো। ড্যাশবোর্ড এ লগ ইন করে পরীক্ষা শুরু করো।
+          </p>
+          <p className="mt-1.5">
+            অথবা, যদি আগে গুগল ফর্ম পুরন করে থাকো,তাহলে নিচে গুগল ফর্ম সেকশন এ দেখো।
+          </p>
+          <p className="mt-1 font-semibold text-marigold-600 dark:text-marigold-400">
+            বি দ্র: আগে গুগল ফরম পুরন না করলে কোন সমস্যা নাই,উপরের রেজিস্ট্রেশন এ তথ্য দিয়েই আইডি সংগ্রহ করে ফেলো।
+          </p>
+        </div>
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <label className="block">
             <span className="mb-1 block text-xs font-medium text-ink-600 dark:text-ink-100">নাম</span>
@@ -192,8 +231,9 @@ export default function RegisterPage() {
               </span>
               <div className="flex gap-2">
                 {[
-                  { key: "science", label: "সাইন্স" },
-                  { key: "humanities_commerce", label: "মানবিক + ব্যবসায়" },
+                  { key: "science", label: "Science" },
+                  { key: "humanities_commerce", label: "Humanities" },
+                  { key: "humanities_commerce", label: "Business" },
                 ].map(({ key, label }) => (
                   <button
                     key={key}
@@ -227,6 +267,43 @@ export default function RegisterPage() {
             {loading ? "generating..." : "Get your Student ID"}
           </button>
         </form>
+        {/* গুগল ফর্ম আইডি রিকভারি সেকশন */}
+        <div className="mt-6 border-t border-ink-100 pt-5 dark:border-ink-800">
+          <h2 className="text-center font-display text-sm font-semibold text-ink-900 dark:text-white">
+            গুগল ফর্ম পূরণকারীদের আইডি খুঁজুন
+          </h2>
+          <form onSubmit={handleGoogleFormLookup} className="mt-3 space-y-3">
+            <label className="block">
+              <span className="mb-1 block text-xs font-medium text-ink-600 dark:text-ink-100">
+                গুগল ফর্মে দেওয়া মোবাইল নম্বর
+              </span>
+              <input
+                type="tel"
+                inputMode="numeric"
+                placeholder="01XXXXXXXXX"
+                value={searchPhone}
+                onChange={(e) => setSearchPhone(e.target.value.trim())}
+                maxLength={11}
+                className="w-full rounded-lg border border-ink-100 bg-ink-50 px-3 py-2 text-sm outline-none dark:border-ink-700 dark:bg-ink-950"
+                required
+              />
+            </label>
+
+            {searchError && (
+              <p className="flex items-center gap-1.5 text-xs text-danger" role="alert">
+                <AlertCircle size={13} /> {searchError}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={searchLoading}
+              className="w-full rounded-lg border border-ink-200 bg-transparent py-2 text-xs font-semibold text-ink-800 transition hover:bg-ink-50 dark:border-ink-700 dark:text-white dark:hover:bg-ink-800 disabled:opacity-60"
+            >
+              {searchLoading ? "খুঁজা হচ্ছে..." : "গুগল ফর্মের আইডি বের করো"}
+            </button>
+          </form>
+        </div>
 
         <p className="mt-4 text-center text-xs text-ink-400" lang="bn">
           আগে থেকে আইডি আছে?{" "}

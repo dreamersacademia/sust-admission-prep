@@ -155,11 +155,13 @@ function handleGoogleFormLookup(e) {
         </p>
         <div className="mt-3 rounded-xl border border-ink-100 bg-ink-50/50 p-3 text-center text-xs text-ink-500 dark:border-ink-800 dark:bg-ink-950/50 dark:text-ink-400" lang="bn">
           <p className="font-medium text-ink-700 dark:text-ink-200">
-            যারা গুগল ফর্ম এ রেজিস্ট্রেশন করেছেন,⚠️তারা নতুন করে রেজিস্ট্রেশন করার দরকার নেই।⚠️ এখানে সবার নিচে গুগল ফর্ম সেকশনে শুধু ফোন নাম্বার দিয়ে স্টুডেন্ট আইডি সংগ্রহ করুন।
+            যারা গুগল ফর্ম এ রেজিস্ট্রেশন করেছে,⚠️তারা নতুন করে রেজিস্ট্রেশন করার দরকার নেই।⚠️ এখানে সবার নিচে গুগল ফর্ম সেকশনে শুধু ফোন নাম্বার দিয়ে স্টুডেন্ট আইডি সংগ্রহ কর।<br/>
           </p>
-          <p className="mt-1.5">
-            যারা নতুন শিক্ষার্থী, অর্থাৎ গুগল ফর্মে রেজিস্ট্রেশন করেননি, তারা এখানে নতুন করে রেজিস্ট্রেশন করতে পারবেন।✅ 
-            নতুন শিক্ষার্থীদের গুগল ফর্ম পুরন করার প্রয়োজন নেই।⚠️ এখানে সরাসরি নাম,কলেজ,মোবাইল নাম্বার,ইউনিট পারমিশন এবং গ্রুপ দিয়ে রেজিস্ট্রেশন করতে পারবেন।✅এবং মুহুর্তের মধ্যেই আইডি পেয়ে যাবেন।আইডি অবশ্যোই স্ক্রিনশোট নিয়ে রাখবেন।⚠️
+          <p className="mt-1 font-semibold text-green-600 dark:text-green-400">
+            যারা নতুন শিক্ষার্থী, অর্থাৎ গুগল ফর্মে রেজিস্ট্রেশন করেনি, তারা এখানে নতুন করে রেজিস্ট্রেশন করতে পারবে।✅ <br/>
+            নতুন শিক্ষার্থীদের গুগল ফর্ম পুরন করার প্রয়োজন নেই।⚠️<br/>
+            এখানে সরাসরি নাম,কলেজ,মোবাইল নাম্বার,ইউনিট পারমিশন এবং গ্রুপ দিয়ে রেজিস্ট্রেশন করতে পারবে।✅<br/>
+            আইডি পাওয়ার পর অবশ্যই স্ক্রিনশট নিয়ে রাখবে।⚠️
           </p>
           <p className="mt-1 font-semibold text-marigold-600 dark:text-marigold-400">
            ⚠️ রেজিস্ট্রেশন করার পুর্বে এই অংশটা মনোযোগ দিয়ে পড়ো ! ☠️
@@ -302,7 +304,7 @@ function handleGoogleFormLookup(e) {
               disabled={searchLoading}
               className="w-full rounded-lg border border-ink-200 bg-transparent py-2 text-xs font-semibold text-ink-800 transition hover:bg-ink-50 dark:border-ink-700 dark:text-white dark:hover:bg-ink-800 disabled:opacity-60"
             >
-              {searchLoading ? "খুঁজা হচ্ছে..." : "গুগল ফর্মের আইডি বের করো"}
+              {searchLoading ? "Searching..." : "Get your Student ID "}
             </button>
           </form>
         </div>

@@ -436,6 +436,16 @@ function toDatetimeLocalValue(isoString) {
                   ))}
                 </div>
 
+                <label className="mt-2 flex items-center gap-2 text-[11px] font-medium text-ink-600 dark:text-ink-100">
+                  <input
+                    type="radio"
+                    name={`correct-${q.id}`}
+                    checked={q.correctIndex === null}
+                    onChange={() => updateQuestion(q.id, { correctIndex: null })}
+                  />
+                  ট্র্যাপ প্রশ্ন — কোনো সঠিক উত্তর নেই (খালি রাখলে নম্বর কাটা যাবে না, যেকোনো অপশন বাছলে ভুল ধরা হবে)
+                </label>
+
                 <p className="mb-1 mt-3 text-[10px] font-semibold uppercase tracking-wide text-ink-400">
                   ব্যাখ্যার অপশন ১ — টেক্সট
                 </p>

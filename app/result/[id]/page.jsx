@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
-import { PlayCircle, ExternalLink, CheckCircle2, XCircle, Trophy, GraduationCap } from "lucide-react";
+import { PlayCircle, ExternalLink, CheckCircle2, XCircle,MinusCircle, Trophy, GraduationCap } from "lucide-react";
 import MathRenderer from "@/components/MathRenderer";
 import Mascot from "@/components/Mascot";
 import { fetchExamById, fetchExamResult, fetchCurrentStudent } from "@/lib/dataLayer";
@@ -131,14 +131,27 @@ const {
               <section className="space-y-3 px-4">
                 {questions.map((q, idx) => {
                   const yourAnswer = answers[q.id];
-                  const isCorrect = yourAnswer === q.correctIndex;
+                  const isSkipped = yourAnswer === undefined || yourAnswer === null;
+                  const isTrapQuestion = q.correctIndex === null || q.correctIndex === undefined;
+                  const isCorrect = !isSkipped && yourAnswer === q.correctIndex;
                   const qStats = stats[q.id];
                   return (
                     <div key={q.id} className="rounded-xl2 border border-ink-100 dark:border-ink-800 bg-white dark:bg-ink-900 p-4 shadow-card">
                       <div className="flex items-start justify-between gap-2">
                         <p className="text-[10px] font-semibold uppercase tracking-wide text-marigold-600 dark:text-marigold-400">প্রশ্ন {idx + 1} · {q.subject}</p>
-                        {isCorrect ? <CheckCircle2 size={16} className="shrink-0 text-success" /> : <XCircle size={16} className="shrink-0 text-danger" />}
+                        {isSkipped ? (
+                          <MinusCircle size={16} className="shrink-0 text-ink-400" />
+                        ) : isCorrect ? (
+                          <CheckCircle2 size={16} className="shrink-0 text-success" />
+                        ) : (
+                          <XCircle size={16} className="shrink-0 text-danger" />
+                        )}
                       </div>
+                      {isTrapQuestion && (
+                        <p className="mt-0.5 text-[10px] font-medium text-marigold-600 dark:text-marigold-400" lang="bn">
+                          এই প্রশ্নে কোনো সঠিক উত্তর ছিল না — খালি রাখাই ছিল সঠিক সিদ্ধান্ত
+                        </p>
+                      )}
                       <MathRenderer text={q.text} className="mt-1 text-sm" />
                       <div className="mt-2 space-y-1.5">
                         {q.options.map((opt, oi) => {

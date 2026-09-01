@@ -46,6 +46,19 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     fetchAllExams().then(setExistingExams).catch(() => setExistingExams([]));
   }, []);
+  // Converts a stored UTC ISO string back into the local-time format
+// <input type="datetime-local"> expects. THE actual fix for the time
+// shift bug: exam.startAt.slice(0,16) was chopping the UTC string
+// directly, which datetime-local then displayed AS IF it were local
+// time — every edit round-tripped through the wrong timezone and
+// silently shifted the schedule by your UTC offset (6 hours for
+// Bangladesh), compounding on every subsequent edit.
+function toDatetimeLocalValue(isoString) {
+  if (!isoString) return "";
+  const d = new Date(isoString);
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
 
   // Exams are editable anytime — loading one pulls its current questions
   // (full, including answer keys — via the admin-only endpoint, not the
@@ -90,8 +103,8 @@ export default function AdminDashboardPage() {
     setScope(exam?.scope || "chapter");
     setDurationMinutes(exam?.durationMinutes || 30);
     setNegativeMarking(exam?.negativeMarking || 0);
-    setStartAt(exam?.startAt ? exam.startAt.slice(0, 16) : "");
-    setEndAt(exam?.endAt ? exam.endAt.slice(0, 16) : "");
+    setStartAt(exam?.startAt ? toDatetimeLocalValue(exam.startAt) : "");
+    setEndAt(exam?.endAt ? toDatetimeLocalValue(exam.endAt) : "");
     setIsPublic(exam?.isPublic || false);
     setQuestions(
       qs.length

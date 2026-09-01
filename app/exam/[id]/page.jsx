@@ -70,9 +70,10 @@ const [startError, setStartError] = useState("");
 // re-render, and it's now a dependency of the interval effect, so the
 // interval reliably gets created the moment the deadline is known.
 useEffect(() => {
-  if (!exam || status === "not_started" || status === "ended") return;
+    if (!exam) return;
+    if (isLiveType && (status === "not_started" || status === "ended")) return;
 
-  if (!isLiveType) {
+    if (!isLiveType) {
     // Practice / non-windowed exam — plain client-side timer is fine,
     // nothing to protect against reopening.
     const deadline = Date.now() + (exam.durationMinutes || 60) * 60 * 1000;
@@ -220,7 +221,7 @@ useEffect(() => {
   }, [answers, id, isPracticeMode, exam, router]);
 
   useEffect(() => {
-    if (status === "in_window" && examEndAt && remainingMs === 0) submitExam();
+    if (examEndAt && remainingMs === 0) submitExam();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [remainingMs, status]);
 

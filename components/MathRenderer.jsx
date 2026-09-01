@@ -1,6 +1,7 @@
 "use client";
 
 import { InlineMath, BlockMath } from "react-katex";
+import "katex/contrib/mchem";
 
 /**
  * Renders text that mixes plain Bengali/English words with LaTeX.

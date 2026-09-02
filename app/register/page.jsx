@@ -154,17 +154,8 @@ function handleGoogleFormLookup(e) {
           Fill in your details to get a Student ID. This ID is shown only once, so make sure to save it.
         </p>
         <div className="mt-3 rounded-xl border border-ink-100 bg-ink-50/50 p-3 text-center text-xs text-ink-500 dark:border-ink-800 dark:bg-ink-950/50 dark:text-ink-400" lang="bn">
-          <p className="mt-1 font-semibold text-marigold-600 dark:text-marigold-400">
-            যারা গুগল ফর্ম এ রেজিস্ট্রেশন করেছে,⚠️তারা নতুন করে রেজিস্ট্রেশন করার দরকার নেই।⚠️ এখানে সবার নিচে গুগল ফর্ম সেকশনে শুধু ফোন নাম্বার দিয়ে স্টুডেন্ট আইডি সংগ্রহ কর।<br/>
-          </p>
-          <p className="mt-1 font-semibold text-green-600 dark:text-green-400">
-            যারা নতুন শিক্ষার্থী, অর্থাৎ গুগল ফর্মে রেজিস্ট্রেশন করেনি, তারা এখানে নতুন করে রেজিস্ট্রেশন করতে পারবে।✅ <br/>
-            নতুন শিক্ষার্থীদের গুগল ফর্ম পুরন করার প্রয়োজন নেই।⚠️<br/>
-            এখানে সরাসরি নাম,কলেজ,মোবাইল নাম্বার,ইউনিট পারমিশন এবং গ্রুপ দিয়ে রেজিস্ট্রেশন করতে পারবে।✅<br/>
-            আইডি পাওয়ার পর অবশ্যই স্ক্রিনশট নিয়ে রাখবে।⚠️
-          </p>
           <p className="mt-4 font-bold text-red-700 dark:text-red-600">
-           ⚠️ রেজিস্ট্রেশন করার পুর্বে এই অংশটা মনোযোগ দিয়ে পড়ো ! ☠️
+           ☠️আইডি পাওয়ার পর অবশ্যই স্ক্রিনশট নিয়ে রাখবে।⚠️ 
           </p>
         </div>
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
@@ -270,16 +261,16 @@ function handleGoogleFormLookup(e) {
             {loading ? "generating..." : "Get your Student ID"}
           </button>
         </form>
-        {/* গুগল ফর্ম আইডি রিকভারি সেকশন */}
+     
         <div className="mt-6 border-t border-ink-100 pt-5 dark:border-ink-800">
           <h2 className="text-center font-display text-sm font-semibold text-ink-900 dark:text-white">
-           নিচের অপশনটা শুধুমাত্র গুগল ফর্মে  রেজিস্ট্রেশন করা শিক্ষার্থীদের জন্য ⚠️
-        
+            ⚠️স্টুডেন্ট আইডি উদ্ধার কেন্দ্র⚠️
           </h2>
+           <p className="mt-1 font-bold text-red-700 dark:text-red-600"> স্টুডেন্ট আইডি হারিয়ে গেলে এখানে ফোন নাম্বার দিয়ে আইডি খুজে নেও। </p>
           <form onSubmit={handleGoogleFormLookup} className="mt-3 space-y-3">
             <label className="block">
               <span className="mb-1 block text-xs font-medium text-ink-600 dark:text-ink-100">
-                গুগল ফর্মে দেওয়া মোবাইল নম্বর
+                মোবাইল নম্বর
               </span>
               <input
                 type="tel"

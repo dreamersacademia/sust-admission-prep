@@ -266,7 +266,7 @@ function handleGoogleFormLookup(e) {
           <h2 className="text-center font-display text-sm font-semibold text-ink-900 dark:text-white">
             ⚠️স্টুডেন্ট আইডি উদ্ধার কেন্দ্র⚠️
           </h2>
-           <p className="mt-5 font-bold text-merigold-700 dark:text-merigold-600"> স্টুডেন্ট আইডি হারিয়ে গেলে এখানে ফোন নাম্বার দিয়ে আইডি খুজে নেও।</p>
+           <p className="mt-5 font-bold text-marigold-700 dark:text-marigold-600"> স্টুডেন্ট আইডি হারিয়ে গেলে এখানে ফোন নাম্বার দিয়ে আইডি খুজে নেও।</p>
           <form onSubmit={handleGoogleFormLookup} className="mt-3 space-y-3">
             <label className="block">
               <span className="mb-1 block text-xs font-medium text-ink-600 dark:text-ink-100">
@@ -330,7 +330,7 @@ function handleGoogleFormLookup(e) {
       href="tel:01572906297" 
       className="px-3 py-1.5 rounded-md bg-slate-700 hover:bg-slate-800 text-white font-medium inline-flex items-center gap-1 transition"
     >
-      Call Us
+      Call
     </a>
   </div>
 </div>

@@ -263,10 +263,10 @@ function handleGoogleFormLookup(e) {
         </form>
      
         <div className="mt-6 border-t border-ink-100 pt-5 dark:border-ink-800">
-          <h2 className="text-center font-display text-sm font-semibold text-ink-900 dark:text-white">
-            ⚠️স্টুডেন্ট আইডি উদ্ধার কেন্দ্র⚠️
+          <h2  className="mt-4 font-bold text-red-700 dark:text-red-600">
+            স্টুডেন্ট আইডি উদ্ধার কেন্দ্র! 
           </h2>
-           <p className="mt-5 font-bold text-marigold-700 dark:text-marigold-600"> স্টুডেন্ট আইডি হারিয়ে গেলে এখানে ফোন নাম্বার দিয়ে আইডি খুজে নেও।</p>
+           <p className="mt-4 font-bold text-marigold-400 dark:text-marigold-200"> স্টুডেন্ট আইডি হারিয়ে গেলে এখানে ফোন নাম্বার দিয়ে আইডি খুজে নেও।</p>
           <form onSubmit={handleGoogleFormLookup} className="mt-3 space-y-3">
             <label className="block">
               <span className="mb-1 block text-xs font-medium text-ink-600 dark:text-ink-100">

@@ -266,7 +266,7 @@ function handleGoogleFormLookup(e) {
           <h2 className="text-center font-display text-sm font-semibold text-ink-900 dark:text-white">
             ⚠️স্টুডেন্ট আইডি উদ্ধার কেন্দ্র⚠️
           </h2>
-           <p className="mt-1 font-bold text-red-700 dark:text-red-600"> স্টুডেন্ট আইডি হারিয়ে গেলে এখানে ফোন নাম্বার দিয়ে আইডি খুজে নেও। </p>
+           <p className="mt-5 font-bold text-merigold-700 dark:text-merigold-600"> স্টুডেন্ট আইডি হারিয়ে গেলে এখানে ফোন নাম্বার দিয়ে আইডি খুজে নেও।</p>
           <form onSubmit={handleGoogleFormLookup} className="mt-3 space-y-3">
             <label className="block">
               <span className="mb-1 block text-xs font-medium text-ink-600 dark:text-ink-100">
@@ -299,7 +299,41 @@ function handleGoogleFormLookup(e) {
             </button>
           </form>
         </div>
+{/* অ্যাডমিন কন্টাক্ট সেকশন */}
+<div className="mt-3 text-center">
+  <p className="text-xs text-ink-600 dark:text-ink-400 mb-2 font-medium">
+    কোনো সমস্যা হলে অ্যাডমিনের সাথে যোগাযোগ করো:
+  </p>
+  <div className="flex items-center justify-center gap-2 text-xs flex-wrap">
+    {/* WhatsApp Link */}
+    <a
+      href="https://wa.me/+8801572906297" 
+      target="_blank"
+      rel="noopener noreferrer"
+      className="px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white font-medium inline-flex items-center gap-1 transition"
+    >
+      WhatsApp
+    </a>
 
+    {/* Telegram Link */}
+    <a
+      href="https://t.me/j619966" 
+      target="_blank"
+      rel="noopener noreferrer"
+      className="px-3 py-1.5 rounded-md bg-sky-500 hover:bg-sky-600 text-white font-medium inline-flex items-center gap-1 transition"
+    >
+      Telegram
+    </a>
+
+    {/* Call Link */}
+    <a
+      href="tel:01572906297" 
+      className="px-3 py-1.5 rounded-md bg-slate-700 hover:bg-slate-800 text-white font-medium inline-flex items-center gap-1 transition"
+    >
+      Call Us
+    </a>
+  </div>
+</div>
         <p className="mt-4 text-center text-xs text-ink-400" lang="bn">
           আগে থেকে আইডি আছে?{" "}
           <a href="/login" className="font-semibold text-marigold-600 dark:text-marigold-400">লগইন করো</a>

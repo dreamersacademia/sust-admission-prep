@@ -1,8 +1,15 @@
 "use client";
 
-import { InlineMath, BlockMath } from "react-katex";
-import "katex/contrib/mhchem";
+import katex from "katex";
+import "katex/dist/katex.min.css";
 
+// gIobal window-এ katex যুক্ত করে mhchem লোড করা
+if (typeof window !== "undefined") {
+  window.katex = katex;
+  require("katex/dist/contrib/mhchem");
+}
+
+import { InlineMath, BlockMath } from "react-katex";
 /**
  * Renders text that mixes plain Bengali/English words with LaTeX.
  * Supports:

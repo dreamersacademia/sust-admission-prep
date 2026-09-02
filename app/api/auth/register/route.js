@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/server/firebaseAdmin";
 import { hashStudentId } from "@/lib/server/studentAuth";
+import { notifyAdminTelegram } from "@/lib/server/telegramNotify";
 
 const VALID_UNIT_PERMISSIONS = ["A_ONLY", "B_ONLY", "BOTH"];
 const VALID_TRACKS = ["science", "humanities_commerce"];
@@ -69,6 +70,19 @@ export async function POST(request) {
 
   const generatedId = String(Math.floor(100000 + Math.random() * 900000));
   const studentIdHash = await hashStudentId(generatedId);
+
+  // Transient notification only — this is the ONE place the plaintext
+  // ID exists outside the student's own screen, and it's never written
+  // to Firestore. See lib/server/telegramNotify.js's comment for why
+  // this doesn't weaken the hash-only storage model at all.
+  notifyAdminTelegram(
+    `🆕 <b>নতুন স্টুডেন্ট রেজিস্ট্রেশন</b>\n` +
+    `নাম: ${name.trim()}\n` +
+    `ফোন: ${phone}\n` +
+    `কলেজ: ${college.trim()}\n` +
+    `ইউনিট: ${unitPermission}${needsTrack ? ` (${track})` : ""}\n` +
+    `Student ID: <code>${generatedId}</code>`
+  );
 
   await adminDb.collection("students").add({
     name: name.trim(),

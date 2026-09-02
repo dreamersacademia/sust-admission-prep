@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Plus, Trash2, Upload, Eye, ShieldCheck, FilePenLine, LogOut, Trophy } from "lucide-react";
+import { Plus, Trash2, Upload, Eye, ShieldCheck, FilePenLine, LogOut, Trophy, Users } from "lucide-react";
 import MathRenderer from "@/components/MathRenderer";
 import { fetchAllExams } from "@/lib/dataLayer";
 import { firebaseReady } from "@/lib/firebaseClient";
@@ -480,9 +480,17 @@ function toDatetimeLocalValue(isoString) {
           </button>
         </div>
 
-        {/* Bulk student CSV uploader */}
+{/* Bulk student CSV uploader */}
         <div className="rounded-xl2 border border-ink-100 dark:border-ink-800 bg-white dark:bg-ink-900 p-4 shadow-card">
-          <h2 className="mb-1 text-sm font-semibold">Bulk student upload</h2>
+          <div className="mb-1 flex items-center justify-between">
+            <h2 className="text-sm font-semibold">Bulk student upload</h2>
+            <Link
+              href="/admin/students"
+              className="flex items-center gap-1 text-[11px] font-semibold text-marigold-600 dark:text-marigold-400"
+            >
+              <Users size={12} /> সব স্টুডেন্ট দেখো/এক্সপোর্ট করো
+            </Link>
+          </div>
           <p className="mb-3 text-[11px] text-ink-400">
             CSV columns: <code className="font-mono">phone,name,group,college,track</code>
           </p>

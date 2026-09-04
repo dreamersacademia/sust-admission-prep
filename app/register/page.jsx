@@ -20,9 +20,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [generatedId, setGeneratedId] = useState("");
   const [copied, setCopied] = useState(false);
-  const [searchPhone, setSearchPhone] = useState("");
-  const [searchLoading, setSearchLoading] = useState(false);
-  const [searchError, setSearchError] = useState("");
+
 
   const needsTrack = unitPermission === "B_ONLY" || unitPermission === "BOTH";
 
@@ -67,33 +65,7 @@ export default function RegisterPage() {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
-function handleGoogleFormLookup(e) {
-    e.preventDefault();
-    setSearchError("");
 
-    if (!/^01[3-9]\d{8}$/.test(searchPhone)) {
-      setSearchError("সঠিক ১১ ডিজিটের মোবাইল নম্বর দাও।");
-      return;
-    }
-
-    setSearchLoading(true);
-    
-    
-    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz-RDGntWVMPk08Ihgh-W51SoYKXRJmoVhDMFLct8HreKZV3qZOP7gU-gMlMIW2p15kpw/exec";
-
-    fetch(`${APPS_SCRIPT_URL}?phone=${searchPhone}`)
-      .then(async (res) => {
-        const data = await res.json();
-        if (data.success && data.studentId) {
-          setGeneratedId(data.studentId); 
-        } else {
-         
-          throw new Error(data.message || "আইডি পাওয়া যায়নি।"); 
-        }
-      })
-      .catch((err) => setSearchError(err.message))
-      .finally(() => setSearchLoading(false));
-  }
   // Success screen — the ID is shown here ONCE, same rule as the admin
   // bulk-uploader. There's no "look it up again" page anywhere.
   if (generatedId) {
@@ -155,7 +127,7 @@ function handleGoogleFormLookup(e) {
         </p>
         <div className="mt-3 rounded-xl border border-ink-100 bg-ink-50/50 p-3 text-center text-xs text-ink-500 dark:border-ink-800 dark:bg-ink-950/50 dark:text-ink-400" lang="bn">
           <p className="mt-4 font-bold text-red-700 dark:text-red-600">
-           ☠️আইডি পাওয়ার পর অবশ্যই স্ক্রিনশট নিয়ে রাখবে।⚠️ 
+            ☠️আইডি পাওয়ার পর অবশ্যই স্ক্রিনশট নিয়ে রাখবে।⚠️
           </p>
         </div>
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
@@ -261,81 +233,48 @@ function handleGoogleFormLookup(e) {
             {loading ? "generating..." : "Get your Student ID"}
           </button>
         </form>
-     
-        <div className="mt-6 border-t border-ink-100 pt-5 dark:border-ink-800">
-          <div className="mt-3 rounded-xl border border-ink-100 bg-ink-50/50 p-3 text-center text-xs text-ink-500 dark:border-ink-800 dark:bg-ink-950/50 dark:text-ink-400" lang="bn">
-          <h2  className="mt-4 font-bold text-center text-red-700 dark:text-red-600">
-            স্টুডেন্ট আইডি উদ্ধার কেন্দ্র! 
-          </h2>
-           <p className="mt-4 font-bold text-marigold-400 dark:text-marigold-200"> স্টুডেন্ট আইডি হারিয়ে গেলে এখানে ফোন নাম্বার দিয়ে আইডি খুজে নেও।</p>
-           </div>
-          <form onSubmit={handleGoogleFormLookup} className="mt-3 space-y-3">
-            <label className="block">
-              <span className="mb-1 block text-xs font-medium text-ink-600 dark:text-ink-100">
-                মোবাইল নম্বর
-              </span>
-              <input
-                type="tel"
-                inputMode="numeric"
-                placeholder="01XXXXXXXXX"
-                value={searchPhone}
-                onChange={(e) => setSearchPhone(e.target.value.trim())}
-                maxLength={11}
-                className="w-full rounded-lg border border-ink-100 bg-ink-50 px-3 py-2 text-sm outline-none dark:border-ink-700 dark:bg-ink-950"
-                required
-              />
-            </label>
 
-            {searchError && (
-              <p className="flex items-center gap-1.5 text-xs text-danger" role="alert">
-                <AlertCircle size={13} /> {searchError}
-              </p>
-            )}
-
-            <button
-              type="submit"
-              disabled={searchLoading}
-              className="w-full rounded-lg border border-ink-200 bg-transparent py-2 text-xs font-semibold text-ink-800 transition hover:bg-ink-50 dark:border-ink-700 dark:text-white dark:hover:bg-ink-800 disabled:opacity-60"
+        <p className="mt-4 text-center text-xs text-ink-400">
+          আইডি হারিয়ে গেছে?{" "}
+          <a href="/recover" className="font-semibold text-marigold-600 dark:text-marigold-400">
+            আইডি খুঁজে নাও
+          </a>
+        </p>
+        {/* অ্যাডমিন কন্টাক্ট সেকশন */}
+        <div className="mt-3 text-center">
+          <p className="text-xs text-ink-600 dark:text-ink-400 mb-2 font-medium">
+            কোনো সমস্যা হলে অ্যাডমিনের সাথে যোগাযোগ করো:
+          </p>
+          <div className="flex items-center justify-center gap-2 text-xs flex-wrap">
+            {/* WhatsApp Link */}
+            <a
+              href="https://wa.me/+8801572906297"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white font-medium inline-flex items-center gap-1 transition"
             >
-              {searchLoading ? "Searching..." : "Get your Student ID "}
-            </button>
-          </form>
+              WhatsApp
+            </a>
+
+            {/* Telegram Link */}
+            <a
+              href="https://t.me/j619966"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-1.5 rounded-md bg-sky-500 hover:bg-sky-600 text-white font-medium inline-flex items-center gap-1 transition"
+            >
+              Telegram
+            </a>
+
+            {/* Call Link */}
+            <a
+              href="tel:01572906297"
+              className="px-3 py-1.5 rounded-md bg-slate-700 hover:bg-slate-800 text-white font-medium inline-flex items-center gap-1 transition"
+            >
+              Call
+            </a>
+          </div>
         </div>
-{/* অ্যাডমিন কন্টাক্ট সেকশন */}
-<div className="mt-3 text-center">
-  <p className="text-xs text-ink-600 dark:text-ink-400 mb-2 font-medium">
-    কোনো সমস্যা হলে অ্যাডমিনের সাথে যোগাযোগ করো:
-  </p>
-  <div className="flex items-center justify-center gap-2 text-xs flex-wrap">
-    {/* WhatsApp Link */}
-    <a
-      href="https://wa.me/+8801572906297" 
-      target="_blank"
-      rel="noopener noreferrer"
-      className="px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white font-medium inline-flex items-center gap-1 transition"
-    >
-      WhatsApp
-    </a>
-
-    {/* Telegram Link */}
-    <a
-      href="https://t.me/j619966" 
-      target="_blank"
-      rel="noopener noreferrer"
-      className="px-3 py-1.5 rounded-md bg-sky-500 hover:bg-sky-600 text-white font-medium inline-flex items-center gap-1 transition"
-    >
-      Telegram
-    </a>
-
-    {/* Call Link */}
-    <a
-      href="tel:01572906297" 
-      className="px-3 py-1.5 rounded-md bg-slate-700 hover:bg-slate-800 text-white font-medium inline-flex items-center gap-1 transition"
-    >
-      Call
-    </a>
-  </div>
-</div>
         <p className="mt-4 text-center text-xs text-ink-400" lang="bn">
           আগে থেকে আইডি আছে?{" "}
           <a href="/login" className="font-semibold text-marigold-600 dark:text-marigold-400">লগইন করো</a>

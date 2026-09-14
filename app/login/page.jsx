@@ -137,12 +137,23 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="mt-4 text-center text-xs text-ink-400" lang="bn">
-          New here? <a href="/register" className="font-semibold text-marigold-600 dark:text-marigold-400">Register here</a>
-        </p>
-        <p className="mt-4 text-center text-xs text-ink-400" lang="bn">
-          Forgot your ID? <a href="/recover" className="font-semibold text-red-600 dark:text-red-400">Recover it here</a>
-        </p>
+        <div className="mt-5 space-y-2.5">
+          {/* Register Button */}
+          <a
+            href="/register"
+            className="flex w-full items-center justify-center rounded-lg border border-marigold-500/30 bg-marigold-50/60 dark:bg-marigold-500/10 px-4 py-2.5 text-xs font-medium text-ink-800 dark:text-marigold-300 hover:border-marigold-500 transition"
+          >
+            New here? <span className="ml-1 font-bold text-marigold-600 dark:text-marigold-400 underline">Register here</span>
+          </a>
+
+          {/* Recover ID Button */}
+          <a
+            href="/recover"
+            className="flex w-full items-center justify-center rounded-lg border border-red-500/30 bg-red-50/60 dark:bg-red-500/10 px-4 py-2.5 text-xs font-medium text-ink-800 dark:text-red-300 hover:border-red-500 transition"
+          >
+            Forgot your ID? <span className="ml-1 font-bold text-red-600 dark:text-red-400 underline">Recover it here</span>
+          </a>
+        </div>
         
       </motion.div>
 

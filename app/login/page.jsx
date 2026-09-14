@@ -137,21 +137,51 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div className="mt-5 space-y-2.5">
-          {/* Register Button */}
+       <div className="mt-6 space-y-3">
+          {/* Mobile-Optimized Register Card */}
           <a
             href="/register"
-            className="flex w-full items-center justify-center rounded-lg border border-marigold-500/30 bg-marigold-50/60 dark:bg-marigold-500/10 px-4 py-2.5 text-xs font-medium text-ink-800 dark:text-marigold-300 hover:border-marigold-500 transition"
+            className="flex w-full items-center justify-between rounded-xl border border-marigold-500/40 bg-marigold-500/10 px-4 py-3.5 transition active:scale-[0.97] active:bg-marigold-500/20"
           >
-            New here? <span className="ml-1 font-bold text-marigold-600 dark:text-marigold-400 underline">Register here</span>
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-marigold-500 text-lg text-ink-950 shadow-sm">
+                ✨
+              </span>
+              <div className="text-left">
+                <p className="text-sm font-bold text-ink-900 dark:text-white">
+                  New Registration
+                </p>
+                <p className="text-xs text-ink-500 dark:text-ink-400" lang="bn">
+                  New student? Register now
+                </p>
+              </div>
+            </div>
+            <span className="text-base font-bold text-marigold-600 dark:text-marigold-400">
+              →
+            </span>
           </a>
 
-          {/* Recover ID Button */}
+          {/* Mobile-Optimized Recover ID Card */}
           <a
-            href="/recover"
-            className="flex w-full items-center justify-center rounded-lg border border-red-500/30 bg-red-50/60 dark:bg-red-500/10 px-4 py-2.5 text-xs font-medium text-ink-800 dark:text-red-300 hover:border-red-500 transition"
+            href="/find-id"
+            className="flex w-full items-center justify-between rounded-xl border border-ink-200 dark:border-ink-800 bg-ink-50 dark:bg-ink-900/60 px-4 py-3.5 transition active:scale-[0.97] active:bg-ink-100 dark:active:bg-ink-800"
           >
-            Forgot your ID? <span className="ml-1 font-bold text-red-600 dark:text-red-400 underline">Recover it here</span>
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-ink-200 dark:bg-ink-800 text-lg text-ink-800 dark:text-white">
+                🔎
+              </span>
+              <div className="text-left">
+                <p className="text-sm font-bold text-ink-900 dark:text-white">
+                  Recover Student ID
+                </p>
+                <p className="text-xs text-ink-500 dark:text-ink-400" lang="bn">
+                  Forgot your student ID? Find it here
+                </p>
+              </div>
+            </div>
+            <span className="text-base font-bold text-ink-400">
+              →
+            </span>
           </a>
         </div>
         

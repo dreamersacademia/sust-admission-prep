@@ -163,7 +163,7 @@ export default function LoginPage() {
 
           {/* Mobile-Optimized Recover ID Card */}
           <a
-            href="/find-id"
+            href="/recover"
             className="flex w-full items-center justify-between rounded-xl border border-ink-200 dark:border-ink-800 bg-ink-50 dark:bg-ink-900/60 px-4 py-3.5 transition active:scale-[0.97] active:bg-ink-100 dark:active:bg-ink-800"
           >
             <div className="flex items-center gap-3">

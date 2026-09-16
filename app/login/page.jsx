@@ -15,7 +15,7 @@ export default function LoginPage() {
   const [studentId, setStudentId] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
+  const isMaintenance =true;
   function handleSubmit(e) {
     e.preventDefault();
     setError("");
@@ -59,7 +59,22 @@ export default function LoginPage() {
       router.push("/dashboard");
     }, 600);
   }
-
+ if (isMaintenance) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center bg-ink-950 p-4 text-center">
+        <div className="max-w-md space-y-4 rounded-2xl border border-amber-500/30 bg-ink-900 p-8 shadow-2xl">
+          <span className="text-5xl">🛠️</span>
+          <h1 className="text-2xl font-bold text-white">রক্ষণাবেক্ষণ কাজ চলছে</h1>
+          <p className="text-sm text-ink-300" lang="bn">
+            মেধা তালিকা ও সিস্টেম আপডেটের কাজ চলছে। সাময়িকভাবে লগইন সেবা বন্ধ রাখা হয়েছে।
+          </p>
+          <p className="text-xs text-amber-400 font-medium">
+            খুব শীঘ্রই সেবা আবার স্বাভাবিক হবে।
+          </p>
+        </div>
+      </main>
+    );
+  }
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-ink-50 dark:bg-ink-950 px-4 py-8">
       <div className="absolute right-4 top-4">

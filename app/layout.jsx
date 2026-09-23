@@ -1,6 +1,7 @@
 import { Sora, Hind_Siliguri } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 
 // Display face for headings/numbers (English + digits) — used with restraint.
 const sora = Sora({
@@ -20,6 +21,22 @@ const hind = Hind_Siliguri({
 export const metadata = {
   title: "SUST Admission Prep",
   description: "Practice, live exams, and merit tracking for SUST admission candidates.",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "SUST Prep",
+  },
+  icons: {
+    icon: "/icon-512.png",
+    apple: "/apple-touch-icon.png",
+  },
+};
+
+export const viewport = {
+  themeColor: "#1a2050",
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({ children }) {
@@ -29,6 +46,7 @@ export default function RootLayout({ children }) {
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           {children}
         </ThemeProvider>
+        <ServiceWorkerRegister />
       </body>
     </html>
   );

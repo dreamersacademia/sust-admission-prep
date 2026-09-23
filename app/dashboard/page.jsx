@@ -71,18 +71,9 @@ export default function DashboardPage() {
 
 const exams = (allExams || []).filter((e) => {
     if (e.unit && e.unit !== unit) return false;
-    // B-Unit: two separate routines, not one-directional hiding. Science
-    // students see science exams; humanities AND commerce students share
-    // the other routine — any exam whose track isn't literally "science"
-    // counts as that shared routine, so "humanities" and "commerce" tags
-    // don't need to match each other exactly, just both be non-science.
-    // Exams with no track set are shared across both groups (untagged =
-    // general B-Unit content, e.g. a subject common to every track).
-    if (unit === "B" && e.track) {
-      const examIsScience = e.track === "science";
-      const studentIsScience = student?.track === "science";
-      if (examIsScience !== studentIsScience) return false;
-    }
+    // Track-based filtering was tried and explicitly dropped — every
+    // B-Unit-permitted student sees every B-Unit exam regardless of
+    // subject, and picks freely whichever one they want to take.
     const attempted = checkAttempted(e.id, e);
     return classify(e, nowMs, attempted) === activeTab;
   });

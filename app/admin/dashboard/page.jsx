@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Plus, Trash2, Upload, Eye, ShieldCheck, FilePenLine, LogOut, Trophy, Users } from "lucide-react";
+import { Plus, Trash2, Upload, Eye, ShieldCheck, FilePenLine, LogOut, Trophy,Copy, Users } from "lucide-react";
 import MathRenderer from "@/components/MathRenderer";
 import { fetchAllExams } from "@/lib/dataLayer";
 import { firebaseReady } from "@/lib/firebaseClient";
@@ -235,6 +235,11 @@ function toDatetimeLocalValue(isoString) {
       <section className="space-y-4 px-4 py-5">
         {/* Load an existing exam to edit — exams are editable anytime */}
         <div className="rounded-xl2 border border-ink-100 dark:border-ink-800 bg-white dark:bg-ink-900 p-4 shadow-card">
+          <Link href="/admin/exams/clone"
+          className="mb-4 flex items-center justify-center gap-1.5 rounded-lg border-ink-100 dark:border-ink-700 py-2.5 text-sm font-semibold text-ink-600 dark:text-ink-100"
+          > 
+          <Copy size={15} /> Clone Exam 
+           </Link>
           <h2 className="mb-2 flex items-center gap-1.5 text-sm font-semibold">
             <FilePenLine size={15} /> Create new, or edit an existing exam
           </h2>
@@ -250,12 +255,19 @@ function toDatetimeLocalValue(isoString) {
           </select>
 
           {editingExamId && (
+            <>
             <Link
               href={`/admin/results/${editingExamId}`}
               className="mt-2 flex items-center justify-center gap-1.5 rounded-lg border border-ink-100 dark:border-ink-700 py-2 text-xs font-semibold text-ink-600 dark:text-ink-100"
             >
               <Trophy size={13} /> View results & merit for this exam
             </Link>
+            <Link href={`/admin/exams/${editingExamId}/questions`}
+                    className="mt-2 flex items-center justify-center gap-1.5 rounded-lg border border-ink-100 dark:border-ink-700 py-2 text-xs font-semibold text-ink-600 dark:text-ink-100"
+                  >
+                    <Plus size={13} /> এই এক্সামের প্রশ্ন ম্যানেজ করো
+                  </Link>
+                  </>
           )}
         </div>
 

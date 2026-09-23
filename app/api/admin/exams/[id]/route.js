@@ -23,7 +23,9 @@ export async function GET(request, { params }) {
   const exam = examSnap.data();
 
   const questionsSnap = await adminDb.collection("exams").doc(params.id).collection("questions").get();
-  const questions = questionsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  const questions = questionsSnap.docs
+    .map((d) => ({ id: d.id, ...d.data() }))
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
   return NextResponse.json({
     exam: {

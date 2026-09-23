@@ -42,16 +42,24 @@ export async function GET(request) {
     attemptedIds = new Set(attemptsSnap.docs.map((d) => d.data().examId));
   }
 
-  const exams = snap.docs.map((d) => {
-    const data = d.data();
-    return {
-      id: d.id,
-      ...data,
-      startAt: data.startAt ? data.startAt.toDate().toISOString() : null,
-      endAt: data.endAt ? data.endAt.toDate().toISOString() : null,
-      attempted: attemptedIds.has(d.id),
-    };
-  });
+ const exams = snap.docs
+    .map((d) => {
+      const data = d.data();
+      return {
+        id: d.id,
+        ...data,
+        startAt: data.startAt ? data.startAt.toDate().toISOString() : null,
+        endAt: data.endAt ? data.endAt.toDate().toISOString() : null,
+        attempted: attemptedIds.has(d.id),
+        _createdAtMs: data.createdAt?.toMillis ? data.createdAt.toMillis() : 0,
+      };
+    })
+    // Newest first, everywhere the exam list is used — dashboard tabs,
+    // admin's "edit existing exam" dropdown, the clone picker, all of it
+    // flow from this one route. Exams from before this field existed
+    // fall back to 0 and sink to the bottom rather than crashing.
+    .sort((a, b) => b._createdAtMs - a._createdAtMs)
+    .map(({ _createdAtMs, ...rest }) => rest);
 
   return NextResponse.json({ exams });
 }

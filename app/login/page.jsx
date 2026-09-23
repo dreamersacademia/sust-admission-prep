@@ -15,7 +15,7 @@ export default function LoginPage() {
   const [studentId, setStudentId] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const isMaintenance =true;
+  const isMaintenance =false;
   function handleSubmit(e) {
     e.preventDefault();
     setError("");

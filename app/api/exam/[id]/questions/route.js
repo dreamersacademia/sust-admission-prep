@@ -12,9 +12,13 @@ import { adminDb, verifyRequest } from "@/lib/server/firebaseAdmin";
  */
 export async function GET(request, { params }) {
   const decoded = await verifyRequest(request); // may be null for a guest — checked below
-  const isPracticeMode = new URL(request.url).searchParams.get("mode") === "practice";
+  
+  const searchParams = new URL(request.url).searchParams;
+  const isPracticeMode = searchParams.get("mode") === "practice";
+  // FIX: subjectChoice ভ্যারিয়্যাবলটি searchParams থেকে রিড করে নেওয়া হলো
+  const subjectChoice = searchParams.get("choice") || searchParams.get("subjectChoice") || null;
 
-  const examId = params.id;
+  const { id: examId } = await params;
   const examSnap = await adminDb.collection("exams").doc(examId).get();
   if (!examSnap.exists) {
     return NextResponse.json({ error: "Exam not found" }, { status: 404 });
@@ -29,7 +33,7 @@ export async function GET(request, { params }) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-// Live-window gate lives server-side too, not just in the UI — a direct
+  // Live-window gate lives server-side too, not just in the UI — a direct
   // API hit before startAt or after endAt (without an in-progress attempt)
   // gets refused here regardless of what the client shows. Skipped
   // entirely in practice mode — a practice retake of an exam whose
@@ -62,7 +66,7 @@ export async function GET(request, { params }) {
     .collection("questions")
     .get();
 
-const sanitized = questionsSnap.docs
+  const sanitized = questionsSnap.docs
     .map((doc) => {
       const { correctIndex, explanation, videoUrl, ...safe } = doc.data();
       return { id: doc.id, ...safe };

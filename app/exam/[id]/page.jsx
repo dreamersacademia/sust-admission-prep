@@ -297,14 +297,26 @@ useEffect(() => {
           const isPendingQ = pending?.questionId === q.id;
           return (
             <div key={q.id} className="rounded-xl2 border border-ink-100 dark:border-ink-800 bg-white dark:bg-ink-900 p-4 shadow-card">
-              <div className="mb-1 flex items-center justify-between">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-marigold-600 dark:text-marigold-400">Question {idx + 1} · {q.subject}</p>
-                {isLockedQ && <span className="flex items-center gap-1 text-[10px] font-medium text-ink-400"><Lock size={10} /> Locked</span>}
-                {isPendingQ && <span className="text-[10px] font-medium text-marigold-600 dark:text-marigold-400">Locked...</span>}
-              </div>
-              <MathRenderer text={q.text} className="text-sm text-ink-900 dark:text-white" />
-              <div className="mt-3 space-y-2">
-                {q.options.map((opt, oi) => {
+  <div className="mb-1 flex items-center justify-between">
+    <p className="text-[10px] font-semibold uppercase tracking-wide text-marigold-600 dark:text-marigold-400">Question {idx + 1} · {q.subject}</p>
+    {isLockedQ && <span className="flex items-center gap-1 text-[10px] font-medium text-ink-400"><Lock size={10} /> Locked</span>}
+    {isPendingQ && <span className="text-[10px] font-medium text-marigold-600 dark:text-marigold-400">Locked...</span>}
+  </div>
+  
+  <MathRenderer text={q.text} className="text-sm text-ink-900 dark:text-white" />
+
+  {q.imageUrl && (
+    <div className="mt-3 overflow-hidden rounded-lg border border-ink-100 dark:border-ink-800 bg-ink-50 dark:bg-ink-950 p-2">
+      <img
+        src={q.imageUrl}
+        alt={`Question ${idx + 1} Diagram`}
+        className="mx-auto max-h-64 w-auto object-contain rounded"
+      />
+    </div>
+  )}
+
+  <div className="mt-3 space-y-2">
+    {q.options.map((opt, oi) => {
                   const isSelected = answers[q.id] === oi;
                   return (
                     <button

@@ -73,11 +73,16 @@ if (practiceAfterOfficial || (isWindowed && countsTowardMerit && !windowClosed))
 
   // Full reveal — either the window has closed (official result, stays
   // this way forever), or this is a first-time missed-exam practice run.
-  const questionsSnap = await adminDb
+const questionsSnap = await adminDb
     .collection("exams").doc(examId)
     .collection("questions")
     .get();
-  const questions = questionsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  // Same ordering fix as the other two question-reading routes — keeps
+  // "প্রশ্ন ৩" in the result matching the "প্রশ্ন ৩" the student actually
+  // answered during the exam, instead of a re-shuffled order.
+  const questions = questionsSnap.docs
+    .map((d) => ({ id: d.id, ...d.data() }))
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
   let merit = [];
   let stats = {};

@@ -58,18 +58,24 @@ export async function POST(request) {
  
   if (!examId && questions.length > 0) {
     questions.forEach((q, index) => {
-      const qRef = examRef.collection("questions").doc();
-      batch.set(qRef, {
-        text: q.text,
-        options: q.options,
-        correctIndex: q.correctIndex,
-        explanation: q.explanation || "",
-        videoUrl: q.videoUrl || null,
-        subject: q.subject || subject,
-        choiceGroup: hasSubjectChoice && (q.choiceGroup === "A" || q.choiceGroup === "B") ? q.choiceGroup : null,
-        order: index,
-      });
+    const qRef = examRef.collection("questions").doc();
+    batch.set(qRef, {
+      text: q.text,
+      options: q.options,
+      correctIndex: q.correctIndex,
+      explanation: q.explanation || "",
+      videoUrl: q.videoUrl || null,
+      subject: q.subject || subject,
+      // null/"" = common, shown to every student regardless of branch.
+      // "A"/"B" = only shown to students who picked that branch — see
+      // app/api/exam/[id]/questions/route.js for the filtering.
+      choiceGroup: hasSubjectChoice && (q.choiceGroup === "A" || q.choiceGroup === "B") ? q.choiceGroup : null,
+      // THE shuffle-on-edit fix: Firestore's own write order isn't
+      // preserved on read, so every reader (edit form, student exam,
+      // result page) now sorts by this instead — see their .sort() calls.
+      order: index,
     });
+  });
     examData.nextQuestionOrder = questions.length;
   }
 if (!examId) {

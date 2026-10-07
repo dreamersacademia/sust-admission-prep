@@ -62,10 +62,19 @@ export async function GET(request, { params }) {
     .collection("questions")
     .get();
 
-  const sanitized = questionsSnap.docs.map((doc) => {
-    const { correctIndex, explanation, videoUrl, ...safe } = doc.data();
-    return { id: doc.id, ...safe };
-  });
+const sanitized = questionsSnap.docs
+    .map((doc) => {
+      const { correctIndex, explanation, videoUrl, ...safe } = doc.data();
+      return { id: doc.id, ...safe };
+    })
+    // choiceGroup null/undefined = common, shown to everyone regardless
+    // of branch. Only filtered at all when the exam actually has a
+    // subject choice — every other exam is completely unaffected.
+    .filter((q) => !exam.hasSubjectChoice || !q.choiceGroup || q.choiceGroup === subjectChoice)
+    // Same fix as the admin edit route — Firestore doesn't preserve
+    // write order, so without this, students could see question 1 as
+    // question 7 on one load and question 3 on the next.
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
   return NextResponse.json({ questions: sanitized });
 }

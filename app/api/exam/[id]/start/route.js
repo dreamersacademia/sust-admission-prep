@@ -3,29 +3,20 @@ import { adminDb, verifyRequest } from "@/lib/server/firebaseAdmin";
 
 /**
  * POST /api/exam/[id]/start
+ * Body: { subjectChoice? } — "A" or "B", only meaningful when the exam
+ * has hasSubjectChoice: true.
  *
- * This is the piece that was still missing from the "one submission, no
- * bypass" guarantee: until now, the exam page computed its own deadline
- * client-side as `Date.now() + duration`, recalculated every time the
- * page loaded. That means closing the tab and reopening it gave a
- * strictly later `Date.now()`, which pushed the deadline forward — a
- * free time extension, not a security bypass exactly, but not "one
- * continuous attempt" either.
+ * Locks TWO things on first open, in the same transaction: the deadline
+ * (already existed) and — new — the student's subject choice. Without
+ * this, "which elective's questions this student sees" lived only in
+ * client state: a reload could flip it mid-exam, and grading had no
+ * reliable source of truth for which set to grade against at all — it
+ * was grading against Biology AND English combined, regardless of which
+ * one the student actually took.
  *
- * The rule this route enforces, inside a transaction so it's race-safe:
- *   - First open of a live exam → create the attempt doc with
- *     `status: "in_progress"`, `startedAt: now`, and a `deadline` that's
- *     fixed at creation time (min of personal duration and the exam
- *     window's close). This is the ONLY place `deadline` is ever set.
- *   - Any later open, before submission → return the SAME `startedAt`/
- *     `deadline` that was already stored. Resuming after an accidental
- *     tab close works fine; resuming does NOT reset the clock.
- *   - Open after `status: "submitted"` → 409, same as every other
- *     already-submitted check in this codebase.
- *
- * Practice attempts don't call this at all (see lib/dataLayer.js) —
- * unlimited retakes are the whole point there, so there's nothing to
- * lock.
+ * On resume (attempt already exists, still in_progress), the ORIGINAL
+ * locked choice is returned — whatever this call sends is ignored,
+ * exactly like the deadline already works.
  */
 export async function POST(request, { params }) {
   const decoded = await verifyRequest(request);
@@ -36,6 +27,9 @@ export async function POST(request, { params }) {
   if (!examSnap.exists) return NextResponse.json({ error: "Exam not found" }, { status: 404 });
   const exam = examSnap.data();
 
+  const body = await request.json().catch(() => ({}));
+  const requestedChoice = body.subjectChoice;
+
   const isWindowed = exam.startAt && exam.endAt;
   const windowEndMs = isWindowed ? exam.endAt.toMillis() : Infinity;
 
@@ -44,6 +38,10 @@ export async function POST(request, { params }) {
     if (now < exam.startAt.toMillis()) {
       return NextResponse.json({ error: "Exam has not started yet" }, { status: 403 });
     }
+  }
+
+  if (exam.hasSubjectChoice && requestedChoice !== "A" && requestedChoice !== "B") {
+    return NextResponse.json({ error: "subjectChoice must be 'A' or 'B' for this exam" }, { status: 400 });
   }
 
   const attemptRef = adminDb.collection("attempts").doc(`${decoded.uid}_${examId}`);
@@ -57,12 +55,12 @@ export async function POST(request, { params }) {
         if (data.status === "submitted") {
           throw new Error("ALREADY_SUBMITTED");
         }
-        // Resuming — return the ORIGINAL deadline, never a new one.
-        return { startedAt: data.startedAt, deadline: data.deadline };
+        return { startedAt: data.startedAt, deadline: data.deadline, subjectChoice: data.subjectChoice || null };
       }
 
       const now = Date.now();
       const deadline = Math.min(now + (exam.durationMinutes || 60) * 60 * 1000, windowEndMs);
+      const subjectChoice = exam.hasSubjectChoice ? requestedChoice : null;
 
       tx.set(attemptRef, {
         studentAuthUid: decoded.uid,
@@ -71,11 +69,12 @@ export async function POST(request, { params }) {
         status: "in_progress",
         startedAt: now,
         deadline,
+        subjectChoice,
         answers: {},
         tabSwitchCount: 0,
       });
 
-      return { startedAt: now, deadline };
+      return { startedAt: now, deadline, subjectChoice };
     });
 
     return NextResponse.json(result);

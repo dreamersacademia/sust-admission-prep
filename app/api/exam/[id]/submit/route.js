@@ -5,28 +5,19 @@ import { scoreAttempt } from "@/lib/server/scoring";
 
 /**
  * POST /api/exam/[id]/submit
- * Body: { answers: { [questionId]: optionIndex }, isPractice?: boolean }
+ * Body: { answers, isPractice?, subjectChoice? }
  *
- * This is where the "one submission, no bypass, no re-edit" requirement
- * actually lives — everything in the Phase 1 frontend around this is UX,
- * not enforcement. The transaction below is the enforcement:
- *   1. Read the attempt doc.
- *   2. If it's already `status: "submitted"`, reject — no exceptions,
- *      no matter what the client sends.
- *   3. If the attempt has a deadline (windowed exam) and it's already
- *      passed, the client's `answers` payload is IGNORED — grading uses
- *      only what was already synced via /autosave before the deadline.
- *      A late submit call can't sneak in extra answers just because the
- *      student's local timer glitched or they kept tapping after their
- *      own countdown hit zero.
- *   4. Otherwise grade against the REAL questions collection (which the
- *      client has never seen) and write `status: "submitted"` in the same
- *      transaction, so a duplicate request racing in at the same moment
- *      can't slip through between the check and the write.
+ * THE actual bug: grading used to pull EVERY question in the exam doc
+ * regardless of elective — a weekly exam with 60 common + 20 Biology +
+ * 20 English graded every student out of 100, not 80, even though they
+ * only ever saw 80. This silently corrupted the merit list's
+ * denominator for every single student on a choice exam.
  *
- * Negative marking: read from the exam's `negativeMarking` field (marks
- * deducted per wrong answer, 0 if unset) and applied via the shared
- * scoreAttempt() helper — see lib/server/scoring.js.
+ * Official sessions: filtered by the LOCKED subjectChoice on the
+ * attempt doc (set at /start) — never trusts subjectChoice sent here.
+ * Practice sessions: no persistent lock exists (unlimited retakes by
+ * design), so this trusts subjectChoice from the request body — fine
+ * since practice has no merit-list stakes.
  */
 export async function POST(request, { params }) {
   const decoded = await verifyRequest(request);
@@ -35,35 +26,38 @@ export async function POST(request, { params }) {
   }
 
   const examId = params.id;
-  const { answers: clientAnswers = {}, isPractice = false } = await request.json();
+  const { answers: clientAnswers = {}, isPractice = false, subjectChoice: practiceChoiceFromClient } = await request.json();
 
-  // Pull the student's display name + college for the leaderboard — the
-  // custom token itself only carries the uid + role, not profile info.
-  // College rides along here (not phone — that's deliberately never
-  // stored on an attempt, since attempts feed the merit list/PDF and
-  // phone numbers don't belong there per spec).
   const studentSnap = await adminDb.collection("students").doc(decoded.uid).get();
   const studentName = studentSnap.exists ? studentSnap.data().name : "Student";
   const studentCollege = studentSnap.exists ? studentSnap.data().college || null : null;
 
   const examSnap = await adminDb.collection("exams").doc(examId).get();
-  const negativeMarking = examSnap.exists ? examSnap.data().negativeMarking || 0 : 0;
+  const exam = examSnap.exists ? examSnap.data() : {};
+  const negativeMarking = exam.negativeMarking || 0;
 
   const questionsSnap = await adminDb
     .collection("exams").doc(examId)
     .collection("questions")
     .get();
-  const questions = questionsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  const allQuestions = questionsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
-  // Practice attempts are intentionally NOT locked and have no deadline —
-  // write-through, no transaction needed, unlimited retakes by design.
+  // Same filter the questions-fetch route applies — grade against
+  // exactly what the student was actually shown, nothing more.
+  function filterForChoice(choice) {
+    if (!exam.hasSubjectChoice) return allQuestions;
+    return allQuestions.filter((q) => !q.choiceGroup || q.choiceGroup === choice);
+  }
+
   if (isPractice) {
+    const questions = filterForChoice(practiceChoiceFromClient);
     const scored = scoreAttempt(questions, clientAnswers, negativeMarking);
     const practiceId = `${decoded.uid}_${examId}_practice`;
     await adminDb.collection("attempts").doc(practiceId).set({
       studentAuthUid: decoded.uid,
       examId,
       isPractice: true,
+      subjectChoice: exam.hasSubjectChoice ? practiceChoiceFromClient || null : null,
       answers: clientAnswers,
       ...scored,
       submittedAt: FieldValue.serverTimestamp(),
@@ -85,11 +79,11 @@ export async function POST(request, { params }) {
       }
 
       const pastDeadline = existing?.deadline && Date.now() > existing.deadline;
-      // Past the deadline: trust ONLY the server's own autosaved answers.
-      // Within the deadline (or no deadline recorded, e.g. this route
-      // being hit without /start — a fallback, not the normal path):
-      // trust the client's final payload.
       const finalAnswers = pastDeadline ? existing.answers || {} : clientAnswers;
+
+      // THE fix: grade only against the LOCKED choice's question set.
+      const lockedChoice = existing?.subjectChoice ?? null;
+      const questions = filterForChoice(lockedChoice);
       const scored = scoreAttempt(questions, finalAnswers, negativeMarking);
 
       const finalized = {
@@ -113,8 +107,6 @@ export async function POST(request, { params }) {
     throw err;
   }
 
-  // Immediate score only — explanations/video/merit come from
-  // /api/exam/[id]/result once the window closes for everyone.
   return NextResponse.json({
     correctCount: result.correctCount,
     wrongCount: result.wrongCount,

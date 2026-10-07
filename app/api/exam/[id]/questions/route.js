@@ -2,42 +2,30 @@ import { NextResponse } from "next/server";
 import { adminDb, verifyRequest } from "@/lib/server/firebaseAdmin";
 
 /**
- * GET /api/exam/[id]/questions
+ * GET /api/exam/[id]/questions?subject=Physics&mode=practice&subjectChoice=A
  *
- * Returns the question set for an exam with the answer key stripped out —
- * this is the ONLY way question data ever reaches the browser during a
- * live exam. `exams/{id}/questions` itself is unreadable by any client per
- * firestore.rules; this route uses the Admin SDK, which bypasses those
- * rules on purpose, and hands back only what a student should see.
+ * For an OFFICIAL (signed-in, non-practice) session on a hasSubjectChoice
+ * exam, the choice is now read from the LOCKED value on the attempt doc
+ * (set at /api/exam/[id]/start) — never trusted from this request's
+ * query param anymore. Practice mode and guest (public-link) requests
+ * have no persistent lock to read, so they keep using the query param —
+ * fine there since neither has merit-list stakes riding on it.
  */
 export async function GET(request, { params }) {
-  const decoded = await verifyRequest(request); // may be null for a guest — checked below
-  
-  const searchParams = new URL(request.url).searchParams;
-  const isPracticeMode = searchParams.get("mode") === "practice";
-  // FIX: subjectChoice ভ্যারিয়্যাবলটি searchParams থেকে রিড করে নেওয়া হলো
-  const subjectChoice = searchParams.get("choice") || searchParams.get("subjectChoice") || null;
+  const decoded = await verifyRequest(request);
+  const isPracticeMode = new URL(request.url).searchParams.get("mode") === "practice";
 
-  const { id: examId } = await params;
+  const examId = params.id;
   const examSnap = await adminDb.collection("exams").doc(examId).get();
   if (!examSnap.exists) {
     return NextResponse.json({ error: "Exam not found" }, { status: 404 });
   }
   const exam = examSnap.data();
 
-  // A guest (no token) may only ever fetch questions for a genuinely
-  // public exam — the public-exam page's own "isPublic" check in the UI
-  // is not what actually stops a private exam's questions from leaking to
-  // an unauthenticated request; this check is.
   if (!decoded && !exam.isPublic) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Live-window gate lives server-side too, not just in the UI — a direct
-  // API hit before startAt or after endAt (without an in-progress attempt)
-  // gets refused here regardless of what the client shows. Skipped
-  // entirely in practice mode — a practice retake of an exam whose
-  // window already ended is exactly the normal case, not an error.
   const now = Date.now();
   const isWindowed = exam.startAt && exam.endAt;
   if (isWindowed && !isPracticeMode) {
@@ -47,17 +35,24 @@ export async function GET(request, { params }) {
     }
   }
 
-  // One-time-attempt gate: only for an OFFICIAL attempt. This was the
-  // actual bug — it used to fire regardless of mode, so retaking an
-  // already-completed exam via "পুনরায় প্র্যাকটিস করো" (mode=practice)
-  // hit the exact same "Already submitted" rejection meant for someone
-  // trying to re-enter their official, locked attempt. Practice mode is
-  // unlimited by design and must never be blocked by this check.
-  if (isWindowed && decoded && !isPracticeMode) {
+  let subjectChoice = new URL(request.url).searchParams.get("subjectChoice");
+
+  const isOfficialSession = isWindowed && decoded && !isPracticeMode;
+  if (isOfficialSession) {
     const attemptId = `${decoded.uid}_${examId}`;
     const attemptSnap = await adminDb.collection("attempts").doc(attemptId).get();
-    if (attemptSnap.exists && attemptSnap.data().status === "submitted") {
-      return NextResponse.json({ error: "Already submitted" }, { status: 409 });
+    if (attemptSnap.exists) {
+      const attemptData = attemptSnap.data();
+      if (attemptData.status === "submitted") {
+        return NextResponse.json({ error: "Already submitted" }, { status: 409 });
+      }
+      // THE fix: locked value wins, not the query param.
+      if (exam.hasSubjectChoice) subjectChoice = attemptData.subjectChoice || null;
+    } else if (exam.hasSubjectChoice) {
+      // Nothing locked yet — the frontend must call /start (with the
+      // student's picked choice) before ever calling this route for a
+      // choice exam. Returning nothing rather than guessing.
+      subjectChoice = null;
     }
   }
 
@@ -71,14 +66,8 @@ export async function GET(request, { params }) {
       const { correctIndex, explanation, videoUrl, ...safe } = doc.data();
       return { id: doc.id, ...safe };
     })
-    // choiceGroup null/undefined = common, shown to everyone regardless
-    // of branch. Only filtered at all when the exam actually has a
-    // subject choice — every other exam is completely unaffected.
     .filter((q) => !exam.hasSubjectChoice || !q.choiceGroup || q.choiceGroup === subjectChoice)
-    // Same fix as the admin edit route — Firestore doesn't preserve
-    // write order, so without this, students could see question 1 as
-    // question 7 on one load and question 3 on the next.
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
-  return NextResponse.json({ questions: sanitized });
+  return NextResponse.json({ questions: sanitized, subjectChoice });
 }

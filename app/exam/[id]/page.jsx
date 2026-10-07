@@ -242,22 +242,22 @@ export default function ExamEnginePage() {
           এই পরীক্ষায় তোমাকে যেকোনো একটি ঐচ্ছিক বিষয়টি বেছে নিয়ে উত্তর করতে হবে।
         </p>
         <div className="mt-2 flex w-full max-w-xs flex-col gap-3">
-          {exam.choiceLabelA && (
-            <button
-              onClick={() => setSubjectChoice(exam.choiceLabelA)}
-              className="w-full rounded-xl border border-ink-200 dark:border-ink-800 bg-white dark:bg-ink-900 py-3.5 text-sm font-semibold text-ink-900 dark:text-white shadow-card transition active:scale-98 hover:border-marigold-500"
-            >
-              {exam.choiceLabelA}
-            </button>
-          )}
-          {exam.choiceLabelB && (
-            <button
-              onClick={() => setSubjectChoice(exam.choiceLabelB)}
-              className="w-full rounded-xl border border-ink-200 dark:border-ink-800 bg-white dark:bg-ink-900 py-3.5 text-sm font-semibold text-ink-900 dark:text-white shadow-card transition active:scale-98 hover:border-marigold-500"
-            >
-              {exam.choiceLabelB}
-            </button>
-          )}
+         {exam.choiceLabelA && (
+  <button
+    onClick={() => setSubjectChoice("A")}
+    className="w-full rounded-xl border border-ink-200 dark:border-ink-800 bg-white dark:bg-ink-900 py-3.5 text-sm font-semibold text-ink-900 dark:text-white shadow-card transition active:scale-98 hover:border-marigold-500"
+  >
+    {exam.choiceLabelA}
+  </button>
+)}
+{exam.choiceLabelB && (
+  <button
+    onClick={() => setSubjectChoice("B")}
+    className="w-full rounded-xl border border-ink-200 dark:border-ink-800 bg-white dark:bg-ink-900 py-3.5 text-sm font-semibold text-ink-900 dark:text-white shadow-card transition active:scale-98 hover:border-marigold-500"
+  >
+    {exam.choiceLabelB}
+  </button>
+)}
         </div>
       </main>
     );

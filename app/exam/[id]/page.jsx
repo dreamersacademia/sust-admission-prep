@@ -159,12 +159,13 @@ export default function ExamEnginePage() {
   useEffect(() => {
     if (!exam) return;
     if (needsChoice && !subjectChoice) return;
+    if (isLiveType && !examEndAt) return;
     let cancelled = false;
     fetchQuestionsForExam(id, { isPractice: isPracticeMode, subjectChoice })
       .then((questionsData) => { if (!cancelled) setQuestions(questionsData); })
       .catch((err) => !cancelled && setLoadError(err.message));
     return () => { cancelled = true; };
-  }, [exam, needsChoice, subjectChoice, id, isPracticeMode]);
+  }, [exam, needsChoice, subjectChoice ,isLiveType,examEndAt, id, isPracticeMode]);
 
   const [answers, setAnswers] = useState({});
   const [pending, setPending] = useState(null);

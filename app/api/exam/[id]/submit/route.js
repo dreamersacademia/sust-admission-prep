@@ -3,22 +3,6 @@ import { adminDb, verifyRequest } from "@/lib/server/firebaseAdmin";
 import { FieldValue } from "firebase-admin/firestore";
 import { scoreAttempt } from "@/lib/server/scoring";
 
-/**
- * POST /api/exam/[id]/submit
- * Body: { answers, isPractice?, subjectChoice? }
- *
- * THE actual bug: grading used to pull EVERY question in the exam doc
- * regardless of elective — a weekly exam with 60 common + 20 Biology +
- * 20 English graded every student out of 100, not 80, even though they
- * only ever saw 80. This silently corrupted the merit list's
- * denominator for every single student on a choice exam.
- *
- * Official sessions: filtered by the LOCKED subjectChoice on the
- * attempt doc (set at /start) — never trusts subjectChoice sent here.
- * Practice sessions: no persistent lock exists (unlimited retakes by
- * design), so this trusts subjectChoice from the request body — fine
- * since practice has no merit-list stakes.
- */
 export async function POST(request, { params }) {
   const decoded = await verifyRequest(request);
   if (!decoded) {
@@ -42,22 +26,29 @@ export async function POST(request, { params }) {
     .get();
   const allQuestions = questionsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
-  // Same filter the questions-fetch route applies — grade against
-  // exactly what the student was actually shown, nothing more.
   function filterForChoice(choice) {
     if (!exam.hasSubjectChoice) return allQuestions;
     return allQuestions.filter((q) => !q.choiceGroup || q.choiceGroup === choice);
   }
 
   if (isPractice) {
-    const questions = filterForChoice(practiceChoiceFromClient);
+    // FIX: a Daily choice exam has NO shared questions — every question
+    // has a choiceGroup. Without this check, a missing/invalid choice
+    // silently graded against an empty question list (0/0), instead of
+    // telling the client to send a real choice.
+    const practiceChoice = practiceChoiceFromClient === "A" || practiceChoiceFromClient === "B" ? practiceChoiceFromClient : null;
+    if (exam.hasSubjectChoice && !practiceChoice) {
+      return NextResponse.json({ error: "SUBJECT_CHOICE_REQUIRED" }, { status: 400 });
+    }
+
+    const questions = filterForChoice(practiceChoice);
     const scored = scoreAttempt(questions, clientAnswers, negativeMarking);
     const practiceId = `${decoded.uid}_${examId}_practice`;
     await adminDb.collection("attempts").doc(practiceId).set({
       studentAuthUid: decoded.uid,
       examId,
       isPractice: true,
-      subjectChoice: exam.hasSubjectChoice ? practiceChoiceFromClient || null : null,
+      subjectChoice: practiceChoice,
       answers: clientAnswers,
       ...scored,
       submittedAt: FieldValue.serverTimestamp(),
@@ -81,7 +72,6 @@ export async function POST(request, { params }) {
       const pastDeadline = existing?.deadline && Date.now() > existing.deadline;
       const finalAnswers = pastDeadline ? existing.answers || {} : clientAnswers;
 
-      // THE fix: grade only against the LOCKED choice's question set.
       const lockedChoice = existing?.subjectChoice ?? null;
       const questions = filterForChoice(lockedChoice);
       const scored = scoreAttempt(questions, finalAnswers, negativeMarking);

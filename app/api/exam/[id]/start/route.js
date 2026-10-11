@@ -7,16 +7,19 @@ import { adminDb, verifyRequest } from "@/lib/server/firebaseAdmin";
  * has hasSubjectChoice: true.
  *
  * Locks TWO things on first open, in the same transaction: the deadline
- * (already existed) and — new — the student's subject choice. Without
- * this, "which elective's questions this student sees" lived only in
- * client state: a reload could flip it mid-exam, and grading had no
- * reliable source of truth for which set to grade against at all — it
- * was grading against Biology AND English combined, regardless of which
- * one the student actually took.
+ * (already existed) and — new — the student's subject choice.
  *
  * On resume (attempt already exists, still in_progress), the ORIGINAL
  * locked choice is returned — whatever this call sends is ignored,
  * exactly like the deadline already works.
+ *
+ * IMPORTANT: this is also called with NO subjectChoice at all, as a
+ * silent "resume probe" from the client — before showing the Biology/
+ * English picker, the frontend calls this once to check whether an
+ * attempt already exists. That's why the "subjectChoice must be A or B"
+ * validation below lives INSIDE the transaction and only fires when
+ * we're creating a brand-new attempt — a resume must never be rejected
+ * just because this particular call didn't resend the choice.
  */
 export async function POST(request, { params }) {
   const decoded = await verifyRequest(request);
@@ -28,7 +31,7 @@ export async function POST(request, { params }) {
   const exam = examSnap.data();
 
   const body = await request.json().catch(() => ({}));
-  const requestedChoice = body.subjectChoice;
+  const requestedChoice = body.subjectChoice === "A" || body.subjectChoice === "B" ? body.subjectChoice : null;
 
   const isWindowed = exam.startAt && exam.endAt;
   const windowEndMs = isWindowed ? exam.endAt.toMillis() : Infinity;
@@ -38,10 +41,6 @@ export async function POST(request, { params }) {
     if (now < exam.startAt.toMillis()) {
       return NextResponse.json({ error: "Exam has not started yet" }, { status: 403 });
     }
-  }
-
-  if (exam.hasSubjectChoice && requestedChoice !== "A" && requestedChoice !== "B") {
-    return NextResponse.json({ error: "subjectChoice must be 'A' or 'B' for this exam" }, { status: 400 });
   }
 
   const attemptRef = adminDb.collection("attempts").doc(`${decoded.uid}_${examId}`);
@@ -55,7 +54,14 @@ export async function POST(request, { params }) {
         if (data.status === "submitted") {
           throw new Error("ALREADY_SUBMITTED");
         }
+        // Resuming — ignore whatever this call sent, hand back the lock.
         return { startedAt: data.startedAt, deadline: data.deadline, subjectChoice: data.subjectChoice || null };
+      }
+
+      // Only a brand-new attempt needs a valid choice — and only when the
+      // exam actually has one.
+      if (exam.hasSubjectChoice && !requestedChoice) {
+        throw new Error("SUBJECT_CHOICE_REQUIRED");
       }
 
       const now = Date.now();
@@ -81,6 +87,9 @@ export async function POST(request, { params }) {
   } catch (err) {
     if (err.message === "ALREADY_SUBMITTED") {
       return NextResponse.json({ error: "Already submitted" }, { status: 409 });
+    }
+    if (err.message === "SUBJECT_CHOICE_REQUIRED") {
+      return NextResponse.json({ error: "SUBJECT_CHOICE_REQUIRED" }, { status: 409 });
     }
     throw err;
   }

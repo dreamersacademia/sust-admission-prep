@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { WifiOff, AlertTriangle, X, Lock, Hourglass, BookOpen } from "lucide-react";
+import { WifiOff, AlertTriangle, X, Lock, Hourglass } from "lucide-react";
 import MathRenderer from "@/components/MathRenderer";
 import Mascot from "@/components/Mascot";
 import { fetchExamById, fetchQuestionsForExam, submitExam as submitExamRequest, startExamAttempt, checkAttempted, syncAnswersToServer } from "@/lib/dataLayer";
@@ -22,34 +22,17 @@ export default function ExamEnginePage() {
   const [exam, setExam] = useState(null);
   const [questions, setQuestions] = useState(null);
   const [loadError, setLoadError] = useState("");
-  const [subjectChoice, setSubjectChoice] = useState(null);
 
-  // 1. Fetch Exam Meta
+  // Fetch the exam only — questions wait until the subject-choice picker
+  // (if this exam has one) has been answered. See the questions-fetch
+  // effect further down.
   useEffect(() => {
     let cancelled = false;
     fetchExamById(id)
-      .then((examData) => {
-        if (!cancelled) setExam(examData);
-      })
+      .then((examData) => { if (!cancelled) setExam(examData); })
       .catch((err) => !cancelled && setLoadError(err.message));
     return () => { cancelled = true; };
   }, [id]);
-
-  const requiresSubjectChoice = exam?.hasSubjectChoice && !subjectChoice;
-
-  // 2. Fetch Questions once exam is loaded (and subjectChoice is set if required)
-  useEffect(() => {
-    if (!exam || requiresSubjectChoice) return;
-
-    let cancelled = false;
-    fetchQuestionsForExam(id, { isPractice: isPracticeMode, subjectChoice })
-      .then((questionsData) => {
-        if (!cancelled) setQuestions(questionsData);
-      })
-      .catch((err) => !cancelled && setLoadError(err.message));
-
-    return () => { cancelled = true; };
-  }, [id, exam, requiresSubjectChoice, isPracticeMode, subjectChoice]);
 
   const isWindowed = !!(exam?.startAt && exam?.endAt);
   const isLiveType = isWindowed && !isPracticeMode;
@@ -68,21 +51,85 @@ export default function ExamEnginePage() {
   }, [status]);
 
   const [serverDriftMs] = useState(0);
-  const [examEndAt, setExamEndAt] = useState(null);
+  const [examEndAt, setExamEndAt] = useState(null); // was a ref — see fix note below
   const [remainingMs, setRemainingMs] = useState(0);
   const [startError, setStartError] = useState("");
 
-  // Start exam attempt with locked subjectChoice
+  // ── Subject-choice (A-Unit Biology/English style) ────────────────────
+  // exam.hasSubjectChoice + exam.choiceLabelA / exam.choiceLabelB come
+  // from the exam doc (set by the admin when creating a Daily/Weekly
+  // A-Unit exam that has a Bio/English split). subjectChoice starts null
+  // and nothing related to questions or the deadline proceeds until it's
+  // known — either because the student picks it, or because we find out
+  // (via a silent resume probe, live exams only) that it was already
+  // locked in an earlier session.
+  const needsChoice = !!exam?.hasSubjectChoice;
+  const [subjectChoice, setSubjectChoice] = useState(null);
+  const [choiceProbed, setChoiceProbed] = useState(false); // live exams only
+  const waitingOnChoiceProbe = isLiveType && needsChoice && !subjectChoice && !choiceProbed;
+  const showPicker = needsChoice && !subjectChoice && !waitingOnChoiceProbe;
+
+  // Opens (or resumes) the attempt with an IMMUTABLE deadline. This is
+  // what stops "close the tab, reopen, get a fresh timer" — see
+  // startExamAttempt's comment in lib/dataLayer.js. Practice mode skips
+  // this entirely (unlimited, no deadline to protect).
+  //
+  // FIX: examEndAt used to be a ref. Setting a ref doesn't trigger a
+  // re-render, so the interval-setup effect below (which only re-runs when
+  // its OWN dependencies change) never re-ran once the deadline actually
+  // arrived from startExamAttempt's async response — the timer would set
+  // remainingMs exactly once and then sit frozen forever, since no interval
+  // was ever created. Making it real state fixes this: setting it causes a
+  // re-render, and it's now a dependency of the interval effect, so the
+  // interval reliably gets created the moment the deadline is known.
   useEffect(() => {
-    if (!exam || requiresSubjectChoice) return;
+    if (!exam) return;
     if (isLiveType && (status === "not_started" || status === "ended")) return;
 
     if (!isLiveType) {
+      // Practice / non-windowed exam — plain client-side timer is fine,
+      // nothing to protect against reopening. Choice (if any) is handled
+      // by the picker screen + questions-fetch effect below, not here.
       const deadline = Date.now() + (exam.durationMinutes || 60) * 60 * 1000;
       setExamEndAt(deadline);
       setRemainingMs(Math.max(0, deadline - Date.now()));
       return;
     }
+
+    // Live/windowed exam with a choice that isn't known yet — probe once
+    // (no subjectChoice in the body) to see whether there's already a
+    // locked attempt to resume, BEFORE showing the picker at all. This is
+    // what stops a refreshed page from re-asking Biology/English every
+    // time.
+    if (needsChoice && !subjectChoice && !choiceProbed) {
+      startExamAttempt(id, { durationMinutes: exam.durationMinutes, windowEndAt: exam.endAt })
+        .then(({ deadline, subjectChoice: locked }) => {
+          if (locked) {
+            // Resuming an attempt that was already locked earlier.
+            setSubjectChoice(locked);
+            setExamEndAt(deadline);
+            setRemainingMs(Math.max(0, deadline - Date.now()));
+          }
+          setChoiceProbed(true);
+        })
+        .catch((err) => {
+          if (err.message === "Already submitted") {
+            router.replace(`/result/${id}`);
+            return;
+          }
+          // SUBJECT_CHOICE_REQUIRED just means: no attempt exists yet,
+          // show the picker. Anything else is a real error.
+          if (err.message !== "SUBJECT_CHOICE_REQUIRED") {
+            setStartError(err.message || "Error starting exam. Please try again.");
+          }
+          setChoiceProbed(true);
+        });
+      return;
+    }
+
+    // Still waiting on the student to tap Biology/English — don't start
+    // the clock yet.
+    if (needsChoice && !subjectChoice) return;
 
     startExamAttempt(id, { durationMinutes: exam.durationMinutes, windowEndAt: exam.endAt, subjectChoice })
       .then(({ deadline }) => {
@@ -96,7 +143,7 @@ export default function ExamEnginePage() {
           setStartError(err.message || "Error starting exam. Please try again.");
         }
       });
-  }, [exam, status, isLiveType, id, router, requiresSubjectChoice, subjectChoice]);
+  }, [exam, status, isLiveType, id, router, needsChoice, subjectChoice, choiceProbed]);
 
   useEffect(() => {
     if (status === "not_started" || !examEndAt) return;
@@ -106,6 +153,18 @@ export default function ExamEnginePage() {
     }, 1000);
     return () => clearInterval(tick);
   }, [serverDriftMs, status, examEndAt]);
+
+  // Fetch questions once the exam is loaded AND (if this exam has a
+  // subject choice) the student has answered the picker.
+  useEffect(() => {
+    if (!exam) return;
+    if (needsChoice && !subjectChoice) return;
+    let cancelled = false;
+    fetchQuestionsForExam(id, { isPractice: isPracticeMode, subjectChoice })
+      .then((questionsData) => { if (!cancelled) setQuestions(questionsData); })
+      .catch((err) => !cancelled && setLoadError(err.message));
+    return () => { cancelled = true; };
+  }, [exam, needsChoice, subjectChoice, id, isPracticeMode]);
 
   const [answers, setAnswers] = useState({});
   const [pending, setPending] = useState(null);
@@ -136,6 +195,12 @@ export default function ExamEnginePage() {
     const draft = JSON.parse(localStorage.getItem(key) || "{}");
     draft[questionId] = optionIndex;
     localStorage.setItem(key, JSON.stringify(draft));
+    // Best-effort server backup — see syncAnswersToServer's comment for
+    // why this matters even though localStorage already has it: a dead
+    // connection at the deadline means localStorage is USELESS for
+    // grading (the server can't read the student's disk), so this is
+    // what actually protects a student who loses connectivity right at
+    // the end from losing credit for everything they'd already locked in.
     if (isLiveType) syncAnswersToServer(id, draft);
   }, [id, isLiveType]);
 
@@ -229,48 +294,6 @@ export default function ExamEnginePage() {
       </div>
     );
   }
-
-  // Subject Selection Screen when exam has optional subjects
-  if (requiresSubjectChoice) {
-    return (
-      <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-ink-50 dark:bg-ink-950 px-6 text-center">
-        <BookOpen className="text-marigold-500" size={36} />
-        <h1 className="font-display text-lg font-bold text-ink-900 dark:text-white" lang="bn">
-          ঐচ্ছিক বিষয় নির্বাচন করো
-        </h1>
-        <p className="max-w-xs text-xs text-ink-400" lang="bn">
-          এই পরীক্ষায় তোমাকে যেকোনো একটি ঐচ্ছিক বিষয়টি বেছে নিয়ে উত্তর করতে হবে।
-        </p>
-        <div className="mt-2 flex w-full max-w-xs flex-col gap-3">
-         {exam.choiceLabelA && (
-  <button
-    onClick={() => setSubjectChoice("A")}
-    className="w-full rounded-xl border border-ink-200 dark:border-ink-800 bg-white dark:bg-ink-900 py-3.5 text-sm font-semibold text-ink-900 dark:text-white shadow-card transition active:scale-98 hover:border-marigold-500"
-  >
-    {exam.choiceLabelA}
-  </button>
-)}
-{exam.choiceLabelB && (
-  <button
-    onClick={() => setSubjectChoice("B")}
-    className="w-full rounded-xl border border-ink-200 dark:border-ink-800 bg-white dark:bg-ink-900 py-3.5 text-sm font-semibold text-ink-900 dark:text-white shadow-card transition active:scale-98 hover:border-marigold-500"
-  >
-    {exam.choiceLabelB}
-  </button>
-)}
-        </div>
-      </main>
-    );
-  }
-
-  if (!questions) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-ink-50 dark:bg-ink-950">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-ink-200 dark:border-ink-700 border-t-marigold-500" />
-      </div>
-    );
-  }
-
   if (alreadyLocked) return null; // redirecting
 
   if (isLiveType && status === "not_started") {
@@ -294,9 +317,30 @@ export default function ExamEnginePage() {
         <Mascot mood="blocking" size="lg" message="এই লাইভ উইন্ডো শেষ হয়ে গেছে।" />
         <p className="max-w-xs text-xs text-ink-400" lang="bn">তবে চিন্তা নেই — আর্কাইভ থেকে এটা প্র্যাকটিস হিসেবে দিতে পারবে।</p>
         <button onClick={() => router.push("/dashboard")} className="mt-2 rounded-lg bg-ink-900 dark:bg-marigold-500 px-4 py-2 text-xs font-semibold text-white dark:text-ink-950">
-          Archive থেকে প্র্যাকটিস করো
+        Archive থেকে প্র্যাকটিস করো
         </button>
       </main>
+    );
+  }
+
+  if (waitingOnChoiceProbe) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-2 bg-ink-50 dark:bg-ink-950">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-ink-200 dark:border-ink-700 border-t-marigold-500" />
+        {startError && <p className="max-w-xs text-center text-xs text-danger">{startError}</p>}
+      </div>
+    );
+  }
+
+  if (showPicker) {
+    return <SubjectChoicePicker exam={exam} onChoose={setSubjectChoice} error={startError} />;
+  }
+
+  if (!questions) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-ink-50 dark:bg-ink-950">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-ink-200 dark:border-ink-700 border-t-marigold-500" />
+      </div>
     );
   }
 
@@ -325,7 +369,7 @@ export default function ExamEnginePage() {
 
       {isOffline && (
         <div className="flex items-center justify-center gap-1.5 bg-danger/10 py-1.5 text-[11px] font-medium text-danger">
-          <WifiOff size={12} /> Offline — answers will be saved locally and synced when connection is restored
+          <WifiOff size={12} /> Offline —  answers will be saved locally and synced when connection is restored
         </div>
       )}
 
@@ -335,26 +379,26 @@ export default function ExamEnginePage() {
           const isPendingQ = pending?.questionId === q.id;
           return (
             <div key={q.id} className="rounded-xl2 border border-ink-100 dark:border-ink-800 bg-white dark:bg-ink-900 p-4 shadow-card">
-              <div className="mb-1 flex items-center justify-between">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-marigold-600 dark:text-marigold-400">Question {idx + 1} · {q.subject}</p>
-                {isLockedQ && <span className="flex items-center gap-1 text-[10px] font-medium text-ink-400"><Lock size={10} /> Locked</span>}
-                {isPendingQ && <span className="text-[10px] font-medium text-marigold-600 dark:text-marigold-400">Locked...</span>}
-              </div>
-              
-              <MathRenderer text={q.text} className="text-sm text-ink-900 dark:text-white" />
+  <div className="mb-1 flex items-center justify-between">
+    <p className="text-[10px] font-semibold uppercase tracking-wide text-marigold-600 dark:text-marigold-400">Question {idx + 1} · {q.subject}</p>
+    {isLockedQ && <span className="flex items-center gap-1 text-[10px] font-medium text-ink-400"><Lock size={10} /> Locked</span>}
+    {isPendingQ && <span className="text-[10px] font-medium text-marigold-600 dark:text-marigold-400">Locked...</span>}
+  </div>
+  
+  <MathRenderer text={q.text} className="text-sm text-ink-900 dark:text-white" />
 
-              {q.imageUrl && (
-                <div className="mt-3 overflow-hidden rounded-lg border border-ink-100 dark:border-ink-800 bg-ink-50 dark:bg-ink-950 p-2">
-                  <img
-                    src={q.imageUrl}
-                    alt={`Question ${idx + 1} Diagram`}
-                    className="mx-auto max-h-64 w-auto object-contain rounded"
-                  />
-                </div>
-              )}
+  {q.imageUrl && (
+    <div className="mt-3 overflow-hidden rounded-lg border border-ink-100 dark:border-ink-800 bg-ink-50 dark:bg-ink-950 p-2">
+      <img
+        src={q.imageUrl}
+        alt={`Question ${idx + 1} Diagram`}
+        className="mx-auto max-h-64 w-auto object-contain rounded"
+      />
+    </div>
+  )}
 
-              <div className="mt-3 space-y-2">
-                {q.options.map((opt, oi) => {
+  <div className="mt-3 space-y-2">
+    {q.options.map((opt, oi) => {
                   const isSelected = answers[q.id] === oi;
                   return (
                     <button
@@ -432,6 +476,38 @@ export default function ExamEnginePage() {
           </div>
         </div>
       </Modal>
+    </main>
+  );
+}
+
+// Shown before any question renders, for exams with hasSubjectChoice.
+// Picking is one-way for live exams (locked server-side at /start); for
+// practice retakes it's just a local re-pick each time you open it.
+function SubjectChoicePicker({ exam, onChoose, error }) {
+  const [choosing, setChoosing] = useState(false);
+  return (
+    <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-ink-50 dark:bg-ink-950 px-6 text-center">
+      <Mascot mood="thinking" />
+      <h1 className="font-display text-base font-semibold" lang="bn">তুমি কোনটা দিবে?</h1>
+      <p className="max-w-xs text-xs text-ink-400" lang="bn">
+        একবার বেছে নিলে পরীক্ষার মধ্যে আর পরিবর্তন করা যাবে না। মেরিট সবসময় মোট নম্বরের উপর হবে — তুমি কোনটা বেছে নিয়েছো তা মেরিটে কোনো প্রভাব ফেলবে না।
+      </p>
+      {error && <p className="text-xs text-danger">{error}</p>}
+      <div className="mt-2 flex w-full max-w-xs flex-col gap-3">
+        {["A", "B"].map((key) => {
+          const label = key === "A" ? (exam.choiceLabelA || "Option A") : (exam.choiceLabelB || "Option B");
+          return (
+            <button
+              key={key}
+              disabled={choosing}
+              onClick={() => { setChoosing(true); onChoose(key); }}
+              className="rounded-lg border border-ink-200 dark:border-ink-700 bg-white dark:bg-ink-900 px-4 py-3 text-sm font-semibold text-ink-900 dark:text-white hover:border-marigold-400 disabled:opacity-60 transition"
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
     </main>
   );
 }

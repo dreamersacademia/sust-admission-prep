@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { adminDb, verifyRequest } from "@/lib/server/firebaseAdmin";
-import { FieldValue } from "firebase-admin/firestore";
+import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { scoreAttempt } from "@/lib/server/scoring";
 
 export async function POST(request, { params }) {
@@ -32,10 +32,6 @@ export async function POST(request, { params }) {
   }
 
   if (isPractice) {
-    // FIX: a Daily choice exam has NO shared questions — every question
-    // has a choiceGroup. Without this check, a missing/invalid choice
-    // silently graded against an empty question list (0/0), instead of
-    // telling the client to send a real choice.
     const practiceChoice = practiceChoiceFromClient === "A" || practiceChoiceFromClient === "B" ? practiceChoiceFromClient : null;
     if (exam.hasSubjectChoice && !practiceChoice) {
       return NextResponse.json({ error: "SUBJECT_CHOICE_REQUIRED" }, { status: 400 });
@@ -76,6 +72,8 @@ export async function POST(request, { params }) {
       const questions = filterForChoice(lockedChoice);
       const scored = scoreAttempt(questions, finalAnswers, negativeMarking);
 
+      const submittedAtMs = pastDeadline ? existing.deadline : Date.now();
+
       const finalized = {
         studentAuthUid: decoded.uid,
         studentName,
@@ -85,7 +83,13 @@ export async function POST(request, { params }) {
         status: "submitted",
         answers: finalAnswers,
         ...scored,
-        submittedAt: pastDeadline ? existing.deadline : Date.now(),
+        // FIX: was a raw epoch-ms number (Date.now()) — Firestore console
+        // just shows that as a plain Number, not a date. Wrapping it in
+        // Timestamp.fromMillis() makes it display properly, same as the
+        // practice branch's serverTimestamp() already does. Nothing
+        // reads submittedAt for arithmetic anywhere, so this is purely
+        // cosmetic/organizational — zero functional risk.
+        submittedAt: Timestamp.fromMillis(submittedAtMs),
       };
       tx.set(attemptRef, finalized, { merge: true });
       return finalized;
